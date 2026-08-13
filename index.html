@@ -1,112 +1,1626 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <!-- FIX: Ensures mobile browsers render 1:1 scale on web hosts like GitHub Pages -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zest+</title>
-    <style>
-        /* Mobile-First Layout Reset & Responsive Override Fix */
-        *, *::before, *::after {
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zest</title>
+<style>
+  :root{
+    --bg: #0F1517;
+    --surface: #1B2528;
+    --surface-dim: #141C1E;
+    --surface-raise: #223034;
+    --ink: #E8F0EE;
+    --ink-soft: #90A6A2;
+    --line: #29383A;
+    --teal: #3C9C8C;
+    --teal-deep: #2C7A6D;
+    --accent: #5FD6C0;
+    --sage: #8FBBAF;
+    --rust: #E2835A;
+    --rust-bg: #3A2620;
+    --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
 
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            min-height: 100vh;
-            overflow-x: hidden;
-            -webkit-text-size-adjust: 100%;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f8f9fa;
-            color: #212529;
-        }
+  *{ box-sizing: border-box; }
 
-        /* Enforces full width on mobile while remaining clean on desktop screens */
-        .app-container {
-            width: 100%;
-            max-width: 500px; /* Mobile app container view */
-            margin: 0 auto;
-            min-height: 100vh;
-            background-color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
-        }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
 
-        header {
-            background-color: #4a90e2;
-            color: #ffffff;
-            padding: 1rem;
-            text-align: center;
-        }
+  ::selection{ background: var(--teal); color:#fff; }
 
-        header h1 {
-            margin: 0;
-            font-size: 1.5rem;
-        }
+  .wrap{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+  }
 
-        main {
-            flex: 1;
-            padding: 1rem;
-        }
+  /* ---------- header ---------- */
+  header.top{
+    display:flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 22px 14px 20px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 22px;
+  }
+  .brand-mark{
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .zest-logo{
+    display:inline-flex;
+    align-items:center;
+    padding: 4px 0;
+  }
+  .zest-text{
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 900;
+    font-size: 44px;
+    letter-spacing: 0.01em;
+    color: #0A0A0A;
+    text-shadow:
+      -1.5px -1.5px 0 #F5F7F6,
+       1.5px -1.5px 0 #F5F7F6,
+      -1.5px  1.5px 0 #F5F7F6,
+       1.5px  1.5px 0 #F5F7F6,
+      -1.5px  0     0 #F5F7F6,
+       1.5px  0     0 #F5F7F6,
+       0     -1.5px 0 #F5F7F6,
+       0      1.5px 0 #F5F7F6;
+    line-height: 1;
+  }
+  .zest-plus{
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 900;
+    font-size: 48px;
+    color: #2F6FED;
+    line-height: 1;
+    margin-left: 2px;
+  }
 
-        .card {
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            background-color: #ffffff;
-        }
+  button{
+    font-family: var(--sans);
+    cursor: pointer;
+    border: none;
+    outline-offset: 2px;
+  }
+  .btn{
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    transition: transform .12s ease, box-shadow .12s ease, background .15s ease;
+  }
+  .btn:active{ transform: translateY(1px); }
+  .btn-primary{
+    background: var(--teal-deep);
+    color: #fff;
+  }
+  .btn-primary:hover{ background: var(--teal); }
+  .btn-danger{
+    background: var(--rust);
+    color: #fff;
+  }
+  .btn-danger:hover{ background: #c9744c; }
+  .btn-ghost{
+    background: var(--surface);
+    color: var(--accent);
+    border: 1px solid var(--line);
+  }
+  .btn-ghost:hover{ border-color: var(--accent); background: var(--surface-raise); }
+  .btn-ghost:focus-visible, .btn-primary:focus-visible{ outline: 2px solid var(--accent); }
 
-        .btn {
-            display: inline-block;
-            width: 100%;
-            padding: 0.75rem;
-            background-color: #4a90e2;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-align: center;
-            text-decoration: none;
-        }
+  /* ---------- privacy notice ---------- */
+  .notice{
+    background: var(--surface-dim);
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+  .notice b{ color: var(--accent); }
 
-        .btn:active {
-            background-color: #357abd;
-        }
+  /* ---------- toolbar ---------- */
+  .toolbar{
+    display:flex;
+    gap: 12px;
+    align-items:center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .search{
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+  }
+  .search input{
+    width:100%;
+    padding: 10px 14px 10px 36px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    font-size: 13.5px;
+    font-family: var(--sans);
+    color: var(--ink);
+  }
+  .search input:focus{ outline: 2px solid var(--sage); border-color: var(--accent); }
+  .search svg{
+    position:absolute; left:12px; top:50%; transform:translateY(-50%);
+    width:14px; height:14px; color: var(--ink-soft);
+  }
+  .count-pill{
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    background: var(--surface-dim);
+    padding: 6px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    white-space: nowrap;
+  }
 
-        footer {
-            padding: 1rem;
-            text-align: center;
-            font-size: 0.8rem;
-            color: #6c757d;
-            border-top: 1px solid #e9ecef;
-        }
-    </style>
+  /* ---------- entries ---------- */
+  #entries{ display:flex; flex-direction:column; gap:12px; }
+
+  .empty-state{
+    text-align:center;
+    padding: 60px 20px;
+    color: var(--ink-soft);
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px solid var(--line);
+  }
+  .empty-state svg{ width:36px; height:36px; opacity:.4; margin-bottom:10px; }
+  .empty-state p{ font-size: 13.5px; margin: 4px 0; }
+
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: box-shadow .15s ease;
+  }
+  .card:hover{ box-shadow: 0 2px 14px rgba(0,0,0,0.4); }
+
+  .card-head{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    cursor:pointer;
+    gap: 14px;
+  }
+  .card-id{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--sage);
+    background: var(--teal-deep);
+    padding: 3px 8px;
+    border-radius: 5px;
+    letter-spacing: 0.03em;
+    flex-shrink:0;
+  }
+  .card-main{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; flex:1; min-width:0; }
+  .card-name{ font-weight:700; font-size:15px; color: var(--ink); }
+  .card-meta{ font-size:12.5px; color: var(--ink-soft); }
+  .card-date{ font-family: var(--mono); font-size:12px; color: var(--ink-soft); flex-shrink:0; }
+
+  .card-incomplete{ border-color: var(--rust); }
+  .incomplete-badge{
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--rust);
+    background: var(--rust-bg);
+    padding: 3px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .incomplete-notice{
+    background: var(--rust-bg);
+    color: var(--rust);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+
+  .chevron{
+    width:16px; height:16px;
+    color: var(--ink-soft);
+    transition: transform .18s ease;
+    flex-shrink:0;
+  }
+  .card.open .chevron{ transform: rotate(180deg); }
+
+  .card-body{
+    max-height:0;
+    overflow:hidden;
+    transition: max-height .25s ease;
+    border-top: 1px solid transparent;
+  }
+  .card.open .card-body{ border-top: 1px solid var(--line); max-height: 4000px; }
+
+  .card-body-inner{ padding: 18px; }
+
+  .detail-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px 20px;
+    margin-bottom: 18px;
+  }
+  .field{ display:flex; flex-direction:column; gap:3px; }
+  .field label{
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    font-weight:600;
+  }
+  .field .val{ font-size: 13.5px; color: var(--ink); font-family: var(--mono); }
+  .field .val.empty{ color: var(--line); }
+
+  .act-section{ margin-bottom: 14px; }
+  .act-title{
+    font-family: var(--serif);
+    font-size: 13px;
+    font-weight:600;
+    color: var(--accent);
+    margin-bottom: 8px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .act-title::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background: var(--line);
+  }
+  .act-row{ display:flex; flex-wrap:wrap; gap: 8px 10px; }
+  .chip{
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    background: var(--surface-dim);
+  }
+  .chip.yes{
+    background: var(--teal-deep);
+    color:#fff;
+    border-color: var(--teal-deep);
+  }
+
+  .notes-block{
+    background: var(--surface-dim);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: var(--ink);
+    line-height:1.5;
+    white-space: pre-wrap;
+  }
+  .notes-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:600; margin-bottom:6px; }
+
+  .card-controls{
+    display:flex; gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line);
+  }
+  .icon-btn{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 7px 12px;
+    border-radius:7px;
+    font-size:12.5px;
+    color: var(--ink-soft);
+    display:flex; align-items:center; gap:6px;
+    font-weight:600;
+  }
+  .icon-btn:hover{ color: var(--accent); border-color: var(--accent); }
+  .icon-btn.danger:hover{ color: var(--rust); border-color: var(--rust); }
+  .icon-btn:disabled{ opacity: .4; cursor: default; }
+  .icon-btn:disabled:hover{ color: var(--ink-soft); border-color: var(--line); }
+  .icon-btn svg{ width:13px; height:13px; }
+
+  /* ---------- modal ---------- */
+  .modal-backdrop{
+    position: fixed; inset:0;
+    background: rgba(0,0,0,0.65);
+    display:none;
+    align-items:flex-start;
+    justify-content:center;
+    padding: 40px 16px;
+    overflow-y:auto;
+    z-index: 100;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal{
+    background: var(--surface);
+    border-radius: 14px;
+    max-width: 640px;
+    width:100%;
+    padding: 26px 26px 22px;
+    animation: rise .2s ease;
+  }
+  .modal.modal-narrow{ max-width: 480px; }
+  @keyframes rise{ from{ opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+
+  .modal h2{
+    font-family: var(--serif);
+    font-size: 20px;
+    margin: 0 0 4px;
+    color: var(--accent);
+  }
+  .modal .modal-sub{ font-size:12.5px; color:var(--ink-soft); margin-bottom:20px; }
+
+  .form-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+  .form-grid .full{ grid-column: 1 / -1; }
+  .form-field label{
+    display:block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing:.05em;
+    font-weight:700;
+    color: var(--ink-soft);
+    margin-bottom: 5px;
+  }
+  .form-field input[type=text], .form-field input[type=number], .form-field input[type=date], .form-field textarea{
+    width:100%;
+    padding: 9px 11px;
+    border-radius:7px;
+    border: 1px solid var(--line);
+    background: var(--surface-dim);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+  .form-field input:focus, .form-field textarea:focus{ outline:2px solid var(--sage); border-color: var(--accent); background: var(--surface-raise); }
+  .form-field textarea{ resize: vertical; min-height: 60px; font-family: var(--sans); }
+
+  .check-field{
+    display:flex; align-items:center; gap:8px;
+    padding: 9px 11px;
+    border-radius:7px;
+    background: var(--surface-dim);
+    border: 1px solid var(--line);
+    cursor:pointer;
+  }
+  .check-field input{ width:16px; height:16px; accent-color: var(--teal-deep); }
+  .check-field span{ font-size:13px; font-weight:600; color: var(--ink); }
+
+  fieldset{ border: none; padding:0; margin: 0 0 18px; }
+  .hidden-section{ display:none; }
+  fieldset legend{
+    font-family: var(--serif);
+    font-size: 14.5px;
+    font-weight:600;
+    color: var(--accent);
+    padding: 0;
+    margin-bottom: 10px;
+    width: 100%;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 6px;
+  }
+  .check-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+
+  .subsection{ margin-bottom: 12px; padding-top: 12px; }
+  .subsection:first-child{ padding-top: 0; }
+  .subsection:not(:first-child){ border-top: 1px dashed var(--line); }
+  .subsection:last-child{ margin-bottom: 0; }
+  .check-field.hidden-check{ display:none; }
+
+  .anatomy-box{
+    background: var(--surface-dim);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+  }
+  .anatomy-box .anatomy-label{
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing:.05em;
+    font-weight:700;
+    color: var(--ink-soft);
+    margin-bottom: 9px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .req-tag, .optional-tag{
+    font-size: 9.5px;
+    font-weight:700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+  .req-tag{ background: rgba(226,131,90,0.18); color: var(--rust); }
+  .optional-tag{ background: var(--surface-raise); color: var(--ink-soft); }
+  .anatomy-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .anatomy-row .check-field{ background: var(--surface-raise); flex:1; min-width:140px; }
+
+  .tag-picker{ position: relative; }
+  .tag-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  .tag-chips:empty{ display:none; }
+  .tag-chip{
+    display:inline-flex; align-items:center; gap:6px;
+    background: var(--teal-deep);
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 8px 6px 12px;
+    border-radius: 16px;
+  }
+  .tag-chip button{
+    background:none; border:none; color:#fff; opacity:.8;
+    display:flex; align-items:center; justify-content:center;
+    width:16px; height:16px; border-radius:50%;
+    font-size: 14px; line-height:1; padding:0;
+  }
+  .tag-chip button:hover{ opacity:1; background: rgba(255,255,255,0.2); }
+  .tag-picker input[type=text]{
+    width:100%;
+    padding: 9px 11px;
+    border-radius:7px;
+    border: 1px solid var(--line);
+    background: var(--surface-dim);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+  .tag-picker input[type=text]:focus{ outline:2px solid var(--sage); border-color: var(--accent); background: var(--surface-raise); }
+  .tag-suggestions{
+    display:none;
+    margin-top: 6px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface-raise);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .tag-suggestions.open{ display:block; }
+  .tag-suggestion{
+    padding: 10px 12px;
+    font-size: 13px;
+    color: var(--ink);
+    cursor: pointer;
+    border-bottom: 1px solid var(--line);
+  }
+  .tag-suggestion:last-child{ border-bottom: none; }
+  .tag-suggestion:hover, .tag-suggestion.highlighted{ background: var(--surface-dim); color: var(--accent); }
+  .tag-suggestion.add-custom{ color: var(--accent); font-weight:600; }
+
+  .partner-select{
+    width:100%;
+    padding: 10px 12px;
+    border-radius:7px;
+    border: 1px solid var(--line);
+    background: var(--surface-dim);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+  .partner-select:focus{ outline:2px solid var(--sage); border-color: var(--accent); }
+  .partner-preview{
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--surface-raise);
+    border: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    display:none;
+  }
+  .partner-preview.show{ display:block; }
+  .partner-preview .pp-name{ color: var(--ink); font-weight:700; font-size:13.5px; }
+  .partner-preview .pp-uuid{
+    font-family: var(--mono); font-size:11px; color: var(--sage);
+    background: var(--teal-deep); padding:2px 7px; border-radius:5px; margin-right:8px;
+  }
+
+  .partner-row{
+    display:flex; align-items:center; gap:12px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  .partner-row-main{ flex:1; min-width:0; }
+  .partner-row-name{ font-weight:700; font-size:14px; color: var(--ink); }
+  .partner-row-meta{ font-size:12px; color: var(--ink-soft); margin-top:2px; }
+  .partner-row-controls{ display:flex; gap:6px; flex-shrink:0; }
+
+  .deleted-row{
+    display:flex; flex-direction:column; gap:10px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  .deleted-row-top{ display:flex; align-items:center; gap:10px; }
+  .deleted-row-main{ flex:1; min-width:0; }
+  .deleted-row-name{ font-weight:700; font-size:14px; color: var(--ink); }
+  .deleted-row-meta{ font-size:12px; color: var(--ink-soft); margin-top:2px; }
+  .deleted-badge{
+    font-size: 10.5px; font-weight:700; white-space:nowrap;
+    color: var(--rust); background: var(--rust-bg);
+    padding: 3px 8px; border-radius: 10px;
+  }
+  .deleted-row-controls{ display:flex; gap:8px; }
+  .deleted-row-controls .icon-btn{ flex:1; justify-content:center; }
+
+  .test-results-rows{ display:flex; flex-direction:column; gap:8px; }
+  .test-result-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding: 8px 10px;
+    background: var(--surface-raise);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+  }
+  .test-result-row label{ font-size:13px; font-weight:600; color: var(--ink); }
+  .test-result-row select{
+    font-family: var(--sans);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--surface-dim);
+    color: var(--ink);
+    flex-shrink: 0;
+  }
+  .test-result-row select.res-positive{ color: var(--rust); }
+  .test-result-row select.res-negative{ color: var(--teal); }
+
+  .test-row{
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+  }
+  .test-row-date{ font-weight:700; font-size:14px; color: var(--ink); }
+  .test-row-summary{ font-size:12.5px; color: var(--ink-soft); margin-top:4px; }
+  .test-row-summary.has-positive{ color: var(--rust); font-weight:600; }
+
+  .age-field{ display:flex; align-items:center; gap:8px; }
+  .age-field input[type=number]{ flex: 1; min-width: 0; }
+  .age-toggle{ display:flex; gap:4px; flex-shrink:0; }
+  .age-pill{
+    font-size: 11px;
+    font-weight: 700;
+    padding: 8px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--surface-dim);
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .age-pill:hover{ border-color: var(--accent); color: var(--accent); }
+  .age-pill.active{ background: var(--teal-deep); border-color: var(--teal-deep); color: #fff; }
+  .age-pill:disabled{ opacity: .4; cursor: default; }
+  #f_age:disabled{ opacity: .45; }
+
+  .yesno-toggle{ display:flex; gap:6px; }
+  .tri-toggle .yesno-pill{ flex:1; text-align:center; padding: 9px 6px; }
+  .yesno-pill{
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 9px 18px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    background: var(--surface-dim);
+    color: var(--ink-soft);
+  }
+  .yesno-pill:hover{ border-color: var(--accent); color: var(--accent); }
+  .yesno-pill.active{ background: var(--teal-deep); border-color: var(--teal-deep); color: #fff; }
+  .yesno-pill.active[data-contact="no"]{ background: var(--surface-raise); border-color: var(--line); color: var(--ink-soft); }
+
+  .conditional-reveal{
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height .2s ease, opacity .2s ease, margin-top .2s ease;
+  }
+  .conditional-reveal.open{
+    max-height: 120px;
+    opacity: 1;
+    margin-top: 12px;
+  }
+  #detectedNotesWrap.open{
+    max-height: 500px;
+  }
+
+  .range-options{ display:flex; flex-direction:column; gap:8px; }
+  .range-option{ background: var(--surface-raise); }
+  .range-option input[type=radio]{ width:16px; height:16px; accent-color: var(--teal-deep); }
+  .custom-range-fields{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height .2s ease, opacity .2s ease, margin-top .2s ease;
+  }
+  .custom-range-fields.open{
+    max-height: 100px;
+    opacity: 1;
+    margin-top: 12px;
+  }
+
+  .sections-note{
+    font-size: 12px;
+    color: var(--ink-soft);
+    background: var(--surface-dim);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+  }
+  .link-btn{
+    background:none; border:none; color: var(--accent); font-weight:700; font-size:12px;
+    text-decoration: underline; padding:0; cursor:pointer;
+  }
+
+  .modal-footer{ display:flex; justify-content:flex-end; gap:10px; margin-top: 6px; }
+  .modal-footer.split{ justify-content: space-between; align-items:center; }
+
+  /* ---------- toast ---------- */
+  .toast{
+    position: fixed;
+    bottom: 24px; left:50%;
+    transform: translate(-50%, 20px);
+    background: var(--teal-deep);
+    color:#fff;
+    padding: 11px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight:600;
+    opacity:0;
+    transition: opacity .2s ease, transform .2s ease;
+    pointer-events:none;
+    z-index: 200;
+    max-width: 90vw;
+    text-align:center;
+  }
+  .toast.show{ opacity:1; transform: translate(-50%, 0); }
+
+  /* ---------- action scroll strip (secondary actions) ---------- */
+  .action-scroll{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 2px 2px 4px;
+    margin-bottom: 4px;
+  }
+  .chip-btn{
+    display:flex;
+    align-items:center;
+    gap: 7px;
+    padding: 9px 14px;
+    border-radius: 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--accent);
+    font-size: 12.5px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .chip-btn:active{ transform: scale(0.96); background: var(--surface-raise); }
+  .chip-btn svg{ flex-shrink:0; }
+
+  /* ---------- bottom action bar (primary action) ---------- */
+  .bottom-bar{
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--bg) 55%, rgba(15,21,23,0));
+    z-index: 60;
+  }
+  .bottom-bar .btn{
+    width: 100%;
+    justify-content: center;
+    padding: 15px;
+    font-size: 15px;
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+  }
+
+  /* ---------- Mobile-only view adaptations scoped properly inside a media query ---------- */
+  @media (max-width: 768px) {
+    .form-grid{ grid-template-columns: 1fr; }
+    .card-date{ display:none; }
+    .wrap{ padding: 16px 14px 100px; }
+    .modal-backdrop{ padding: 14px 8px; }
+    .modal{ padding: 20px 16px 16px; border-radius: 12px; }
+    .anatomy-box{ padding: 12px 14px; }
+    .card-head{ padding: 12px 14px; gap:10px; }
+    .card-main{ gap:8px; }
+    .age-field{ flex-direction:column; align-items:stretch; }
+    .age-toggle{ width:100%; }
+    .age-pill{ flex:1; }
+    h1{ font-size:21px; }
+    .toolbar{ flex-wrap:wrap; }
+    .count-pill{ order:2; }
+  }
+</style>
 </head>
 <body>
 
-    <div class="app-container">
-        <header>
-            <h1>Zest+</h1>
-        </header>
+<div class="wrap">
 
-        <main>
-            <div class="card">
-                <h2>Welcome to Zest+</h2>
-                <p>Your privacy-first, local health tracking app.</p>
-                <button class="btn" onclick="alert('App initialized successfully!')">Get Started</button>
-            </div>
-        </main>
+  <header class="top">
+    <div class="brand-mark">
+      <div class="zest-logo">
+        <span class="zest-text">ZEST</span><span class="zest-plus">+</span>
+      </div>
+    </div>
+  </header>
 
-        <footer>
-            <p>&copy; Zest+ — Local-first Data Storage</p>
-        </footer>
+  <div class="action-scroll">
+    <button class="chip-btn" id="setupBtn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.7"/><path d="M5 20c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span>Profile</span>
+    </button>
+    <button class="chip-btn" id="partnersBtn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 19c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="17" cy="8.5" r="2.4" stroke="currentColor" stroke-width="1.5"/><path d="M15.5 13.3c2.5.3 4.5 2.5 4.5 5.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span>Partners</span>
+    </button>
+    <button class="chip-btn" id="testingBtn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 3h6M10 3v5.5L5.5 17a2 2 0 001.8 3h9.4a2 2 0 001.8-3L14 8.5V3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.5 14h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span>Testing</span>
+    </button>
+    <button class="chip-btn" id="exportDoctorBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12h6M9 16h6M9 8h1M13 3H8a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2V8l-5-5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Anonymized Export</span>
+    </button>
+    <button class="chip-btn" id="deletedBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0l-1 14a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Deleted</span>
+    </button>
+  </div>
+
+  <div class="toolbar">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input type="text" id="searchInput" placeholder="Search by name, platform, or username…">
+    </div>
+    <div class="count-pill" id="countPill">0 entries</div>
+  </div>
+
+  <div id="entries"></div>
+
+</div>
+
+<div class="bottom-bar">
+  <button class="btn btn-primary" id="addBtn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span>Add Entry</span>
+  </button>
+</div>
+
+<!-- Profile Modal -->
+<div class="modal-backdrop" id="setupBackdrop">
+  <div class="modal modal-narrow">
+    <h2>Profile</h2>
+    <div class="modal-sub">This just decides which sections show up on the entry form — you can change it any time.</div>
+    <div class="anatomy-box">
+      <div class="anatomy-label">I have a <span class="req-tag">Required</span></div>
+      <div class="anatomy-row">
+        <label class="check-field"><input type="checkbox" id="s_penis"><span>Penis</span></label>
+        <label class="check-field"><input type="checkbox" id="s_vagina"><span>Vagina</span></label>
+      </div>
     </div>
 
+    <div class="anatomy-box">
+      <div class="anatomy-label">Gender identity <span class="optional-tag">Optional</span></div>
+      <div class="form-field"><input type="text" id="s_genderIdentity" placeholder="e.g. woman, non-binary, trans man"></div>
+      <div class="modal-sub" style="margin:8px 0 0;">Separate from anatomy above — some clinics ask for this too.</div>
+    </div>
+
+    <div class="anatomy-box">
+      <div class="anatomy-label">Prevention <span class="optional-tag">Optional</span></div>
+      <div class="form-field" style="margin-bottom:12px;">
+        <label>On PrEP</label>
+        <div class="yesno-toggle" id="prepToggle">
+          <button type="button" class="yesno-pill" data-value="yes">Yes</button>
+          <button type="button" class="yesno-pill" data-value="no">No</button>
+        </div>
+      </div>
+      <div class="form-field">
+        <label>On PEP</label>
+        <div class="yesno-toggle" id="pepToggle">
+          <button type="button" class="yesno-pill" data-value="yes">Yes</button>
+          <button type="button" class="yesno-pill" data-value="no">No</button>
+        </div>
+      </div>
+      <div class="modal-sub" style="margin:8px 0 0;">Leave unselected if unknown — reports will show "Unknown" rather than assuming No.</div>
+    </div>
+
+    <div class="anatomy-box">
+      <div class="anatomy-label">Vaccinations <span class="optional-tag">Optional</span></div>
+      <div class="tag-picker" id="vaxPicker">
+        <div class="tag-chips" id="vaxChips"></div>
+        <input type="text" id="vaxSearchInput" placeholder="Search or type a vaccine…" autocomplete="off">
+        <div class="tag-suggestions" id="vaxSuggestions"></div>
+      </div>
+    </div>
+
+    <div class="anatomy-box">
+      <div class="anatomy-label">Allergies <span class="optional-tag">Optional</span></div>
+      <div class="form-field"><label>Known allergies</label><input type="text" id="s_allergies" placeholder="e.g. latex"></div>
+    </div>
+
+    <div class="anatomy-box">
+      <div class="anatomy-label">Data</div>
+      <div class="range-options">
+        <button type="button" class="chip-btn data-action-btn" id="fullBackupReportBtn" style="width:100%; justify-content:center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Full Backup Report (PDF/Image)</span>
+        </button>
+        <button type="button" class="chip-btn data-action-btn" id="exportJsonBtn" style="width:100%; justify-content:center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Export Data (.json)</span>
+        </button>
+        <button type="button" class="chip-btn data-action-btn" id="importJsonBtn" style="width:100%; justify-content:center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Import Data (.json)</span>
+        </button>
+        <input type="file" id="importJsonInput" accept="application/json" style="display:none;">
+      </div>
+      <div class="modal-sub" style="margin:8px 0 0;">The JSON export/import is a raw data backup — for the human-readable report, use Full Backup or Anonymized Export above.</div>
+    </div>
+
+    <div class="notice" style="margin-bottom:16px;">
+      <b>Kept on this device only.</b> Your profile isn't uploaded, synced, or tied to any account — it's stored the same way your entries are, locally in this browser.
+    </div>
+
+    <div class="anatomy-box" style="border-color: var(--rust);">
+      <div class="anatomy-label" style="color: var(--rust);">Danger Zone</div>
+      <button type="button" class="icon-btn danger" id="deleteAllDataBtn" style="width:100%; justify-content:center; padding:11px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0l-1 14a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Delete All Data
+      </button>
+      <div class="modal-sub" style="margin:8px 0 0;">Permanently erases every entry, partner, test, and profile setting on this device. Cannot be undone.</div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-primary" id="setupSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Partners List Modal -->
+<div class="modal-backdrop" id="partnersListBackdrop">
+  <div class="modal">
+    <h2>Partners</h2>
+    <div class="modal-sub">Each partner keeps one UUID across every entry logged for them.</div>
+    <div id="partnersListBody"></div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button type="button" class="btn btn-ghost" id="partnersListCloseBtn">Close</button>
+      <button type="button" class="btn btn-primary" id="partnersListAddBtn">+ Add Partner</button>
+    </div>
+  </div>
+</div>
+
+<!-- Testing List Modal -->
+<div class="modal-backdrop" id="testingListBackdrop">
+  <div class="modal">
+    <h2>Testing</h2>
+    <div class="modal-sub">Track test dates, symptoms, results, and treatment over time.</div>
+    <div class="anatomy-box">
+      <div class="anatomy-label">Find Local Testing &amp; Care</div>
+      <div class="range-options">
+        <button type="button" class="chip-btn services-link-btn" data-url="https://www.nhs.uk/nhs-services/sexual-health-services/find-a-sexual-health-clinic/" style="width:100%; justify-content:center;">
+          <span>UK — NHS Clinic Finder</span>
+        </button>
+        <button type="button" class="chip-btn services-link-btn" data-url="https://gettested.cdc.gov/" style="width:100%; justify-content:center;">
+          <span>US — CDC GetTested</span>
+        </button>
+        <button type="button" class="chip-btn services-link-btn" data-url="https://www.ippf.org/about-us/member-associations" style="width:100%; justify-content:center;">
+          <span>International — IPPF Directory</span>
+        </button>
+      </div>
+    </div>
+    <div id="testingListBody"></div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button type="button" class="btn btn-ghost" id="testingListCloseBtn">Close</button>
+      <button type="button" class="btn btn-primary" id="testingListAddBtn">+ Add Test</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete All Data Confirmation Modal -->
+<div class="modal-backdrop" id="deleteAllBackdrop">
+  <div class="modal modal-narrow">
+    <h2 style="color: var(--rust);">Delete All Data</h2>
+    <div class="modal-sub">This permanently erases every entry, partner, test record, and profile setting on this device. There is no undo, and nothing is recoverable from the Deleted section afterward.</div>
+    <div class="form-field" style="margin-bottom:18px;">
+      <label>Type DELETE to confirm</label>
+      <input type="text" id="deleteAllConfirmInput" placeholder="DELETE" autocomplete="off">
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="deleteAllCancelBtn">Cancel</button>
+      <button type="button" class="icon-btn danger" id="deleteAllConfirmBtn" disabled style="padding:10px 16px;">Delete Everything</button>
+    </div>
+  </div>
+</div>
+
+<!-- Test Editor Modal -->
+<div class="modal-backdrop" id="testEditorBackdrop">
+  <div class="modal">
+    <h2 id="testEditorTitle">New Test</h2>
+    <div class="modal-sub">Fields left blank are simply recorded as unspecified.</div>
+
+    <div class="form-field"><label>Date tested</label><input type="date" id="te_date"></div>
+
+    <div class="anatomy-box">
+      <div class="anatomy-label">Symptoms <span class="optional-tag">Optional</span></div>
+      <div class="form-field"><textarea id="te_symptoms" placeholder="e.g. none, or describe what you noticed"></textarea></div>
+    </div>
+
+    <div class="anatomy-box">
+      <div class="anatomy-label">Results</div>
+      <div class="form-field" style="margin-bottom:12px;"><label>Results received</label><input type="date" id="te_resultsDate"></div>
+      <div class="yesno-toggle tri-toggle" id="resultStatusToggle">
+        <button type="button" class="yesno-pill" data-value="pending">Pending</button>
+        <button type="button" class="yesno-pill" data-value="clear">All Clear</button>
+        <button type="button" class="yesno-pill" data-value="detected">Detected</button>
+      </div>
+      <div id="detectedNotesWrap" class="conditional-reveal" style="margin-top:0;">
+        <div class="form-field" style="margin-top:12px;">
+          <label>What was detected</label>
+          <textarea id="te_detectedDetails" placeholder="e.g. Chlamydia — prescribed doxycycline"></textarea>
+        </div>
+        <div class="form-field" style="margin-top:12px;">
+          <label>Treatment <span class="optional-tag">Optional</span></label>
+          <textarea id="te_treatment" placeholder="e.g. medication, dosage, course completed"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-field full"><label>Notes</label><textarea id="te_notes" placeholder="Anything else worth remembering"></textarea></div>
+    </div>
+
+    <div class="modal-footer split">
+      <button type="button" class="icon-btn danger" id="testDeleteBtn" style="display:none;">Delete test</button>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn btn-ghost" id="testEditorCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="testEditorSaveBtn">Save Test</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Deleted Entries Modal -->
+<div class="modal-backdrop" id="deletedBackdrop">
+  <div class="modal">
+    <h2>Deleted Entries</h2>
+    <div class="modal-sub">Kept for 7 days in case of a mistake, then removed automatically. You can also remove one for good right away.</div>
+    <div id="deletedListBody"></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="deletedCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export Modal (Doctor + Full Backup share this) -->
+<div class="modal-backdrop" id="exportBackdrop">
+  <div class="modal modal-narrow">
+    <h2 id="exportModalTitle">Anonymized Export</h2>
+    <div class="modal-sub" id="exportModalSub">Export your data to share with medical professionals. This anonymized report does not include names, platforms, or usernames — just record IDs, dates, contactability, and activity history.</div>
+
+    <div class="anatomy-box" id="exportRangeBox">
+      <div class="anatomy-label">Range</div>
+      <div class="range-options">
+        <label class="check-field range-option"><input type="radio" name="exportRange" value="3m" checked><span>Last 3 months</span></label>
+        <label class="check-field range-option"><input type="radio" name="exportRange" value="6m"><span>Last 6 months</span></label>
+        <label class="check-field range-option"><input type="radio" name="exportRange" value="all"><span>All time</span></label>
+        <label class="check-field range-option"><input type="radio" name="exportRange" value="custom"><span>Custom range</span></label>
+      </div>
+      <div class="custom-range-fields" id="customRangeFields">
+        <div class="form-field"><label>From</label><input type="date" id="exportRangeFrom"></div>
+        <div class="form-field"><label>To</label><input type="date" id="exportRangeTo"></div>
+      </div>
+    </div>
+
+    <div class="modal-sub" id="exportRangeSummary" style="margin-bottom:16px;"></div>
+
+    <div class="anatomy-box">
+      <div class="anatomy-label">Format</div>
+      <div class="range-options">
+        <button type="button" class="chip-btn export-format-btn" id="exportPdfBtn" style="width:100%; justify-content:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 3H8a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2V8l-5-5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 3v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Export as PDF</span>
+        </button>
+        <button type="button" class="chip-btn export-format-btn" id="exportImageBtn" style="width:100%; justify-content:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="9" r="1.5" stroke="currentColor" stroke-width="1.7"/><path d="M21 15l-5-5-9 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Export as Image</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="exportCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Entry Modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h2 id="modalTitle">New Entry</h2>
+    <div class="modal-sub">Fields left blank are simply recorded as unspecified.</div>
+
+    <form id="entryForm">
+      <div class="anatomy-box">
+        <div class="anatomy-label">Partner</div>
+        <select id="f_partnerSelect" class="partner-select"></select>
+        <div id="partnerPreview" class="partner-preview"></div>
+        <button type="button" class="link-btn" id="addPartnerFromEntryBtn" style="margin-top:10px;">+ Add new partner</button>
+      </div>
+
+      <div class="anatomy-box">
+        <div class="anatomy-label">Basics</div>
+        <div class="form-grid" style="margin-bottom:0;">
+          <div class="form-field">
+            <label>Age</label>
+            <div class="age-field">
+              <input type="number" id="f_age" min="0" placeholder="—">
+              <div class="age-toggle" id="ageToggle">
+                <button type="button" class="age-pill active" data-age-type="exact">Exact</button>
+                <button type="button" class="age-pill" data-age-type="estimate">Est.</button>
+                <button type="button" class="age-pill" data-age-type="unknown">Unknown</button>
+              </div>
+            </div>
+            <div id="ageLockedNote" style="display:none; font-size:11px; color: var(--ink-soft); margin-top:6px;">Calculated from partner's date of birth</div>
+          </div>
+          <div class="form-field"><label>Date</label><input type="date" id="f_date"></div>
+        </div>
+      </div>
+
+      <div class="sections-note">
+        <span id="sectionsNoteText">Showing sections relevant to you and your partner's anatomy.</span>
+      </div>
+
+      <fieldset id="fs_oral">
+        <legend>Oral</legend>
+        <div class="subsection" id="fs_kissing">
+          <div class="check-grid">
+            <label class="check-field"><input type="checkbox" id="f_kissing"><span>Kissing</span></label>
+          </div>
+        </div>
+        <div class="subsection" id="fs_oralGive">
+          <div class="check-grid">
+            <label class="check-field"><input type="checkbox" id="f_oralGive"><span>I gave oral</span></label>
+            <label class="check-field"><input type="checkbox" id="f_oralGiveBarrier"><span>Barrier used</span></label>
+            <label class="check-field"><input type="checkbox" id="f_oralGiveFinish"><span>Partner finished</span></label>
+            <label class="check-field"><input type="checkbox" id="f_oralGiveSwallow"><span>I swallowed</span></label>
+          </div>
+        </div>
+        <div class="subsection" id="fs_oralReceive">
+          <div class="check-grid">
+            <label class="check-field"><input type="checkbox" id="f_oralReceive"><span>I received oral</span></label>
+            <label class="check-field"><input type="checkbox" id="f_oralReceiveBarrier"><span>Barrier used</span></label>
+            <label class="check-field"><input type="checkbox" id="f_oralReceiveFinish"><span>I finished</span></label>
+            <label class="check-field"><input type="checkbox" id="f_oralReceiveSwallow"><span>Partner swallowed</span></label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset id="fs_anal">
+        <legend>Anal</legend>
+        <div class="subsection" id="fs_analGive">
+          <div class="check-grid">
+            <label class="check-field"><input type="checkbox" id="f_analGive"><span>Insertive</span></label>
+            <label class="check-field"><input type="checkbox" id="f_analGiveCondom"><span>Condom used</span></label>
+            <label class="check-field"><input type="checkbox" id="f_analGiveFinish"><span>I finished</span></label>
+          </div>
+        </div>
+        <div class="subsection" id="fs_analReceive">
+          <div class="check-grid">
+            <label class="check-field"><input type="checkbox" id="f_analReceive"><span>Receptive</span></label>
+            <label class="check-field"><input type="checkbox" id="f_analReceiveCondom"><span>Condom used</span></label>
+            <label class="check-field"><input type="checkbox" id="f_analReceiveFinish"><span>Partner finished</span></label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset id="fs_rim">
+        <legend>Rimming</legend>
+        <div class="subsection" id="fs_rimGive">
+          <div class="check-grid">
+            <label class="check-field"><input type="checkbox" id="f_rimGive"><span>I performed</span></label>
+            <label class="check-field"><input type="checkbox" id="f_rimGiveBarrier"><span>Barrier used</span></label>
+          </div>
+        </div>
+        <div class="subsection" id="fs_rimReceive">
+          <div class="check-grid">
+            <label class="check-field"><input type="checkbox" id="f_rimReceive"><span>I received</span></label>
+            <label class="check-field"><input type="checkbox" id="f_rimReceiveBarrier"><span>Barrier used</span></label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset id="fs_vag">
+        <legend>Vaginal</legend>
+        <div class="subsection" id="fs_vagGive">
+          <div class="check-grid">
+            <label class="check-field"><input type="checkbox" id="f_vagGive"><span>Insertive</span></label>
+            <label class="check-field"><input type="checkbox" id="f_vagCondom"><span>Condom used</span></label>
+            <label class="check-field"><input type="checkbox" id="f_vagFinish"><span>I finished</span></label>
+          </div>
+        </div>
+        <div class="subsection" id="fs_vagReceive">
+          <div class="check-grid">
+            <label class="check-field"><input type="checkbox" id="f_vagReceive"><span>Receptive</span></label>
+            <label class="check-field"><input type="checkbox" id="f_vagReceiveCondom"><span>Condom used</span></label>
+            <label class="check-field"><input type="checkbox" id="f_vagReceiveFinish"><span>Partner finished</span></label>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Notes</label>
+          <textarea id="f_notes" placeholder="Anything else worth remembering — symptoms, testing dates, etc."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="cancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="saveBtn">Save Entry</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Partner Editor Modal -->
+<div class="modal-backdrop" id="partnerEditorBackdrop">
+  <div class="modal modal-narrow">
+    <h2 id="partnerEditorTitle">New Partner</h2>
+    <div class="modal-sub">Saved once, then reusable across entries — the same UUID will show up every time you log this partner.</div>
+
+    <div class="form-grid">
+      <div class="form-field"><label>Name</label><input type="text" id="pe_name"></div>
+      <div class="form-field"><label>Platform</label><input type="text" id="pe_platform" placeholder="e.g. Hinge, Grindr, in person"></div>
+    </div>
+
+    <div class="anatomy-box">
+      <div class="anatomy-label">Age <span class="optional-tag">Optional</span></div>
+      <div class="form-grid" style="margin-bottom:0;">
+        <div class="form-field full">
+          <label>Date of birth</label>
+          <input type="date" id="pe_dob">
+        </div>
+      </div>
+      <div class="modal-sub" style="margin:8px 0 0;">If given, age fills in automatically on entries and updates itself over time. Otherwise their most recently logged age is reused.</div>
+    </div>
+
+    <div class="anatomy-box">
+      <div class="anatomy-label">Contact</div>
+      <div class="form-field">
+        <label>Contactable</label>
+        <div class="yesno-toggle" id="peContactToggle">
+          <button type="button" class="yesno-pill" data-contact="yes">Yes</button>
+          <button type="button" class="yesno-pill active" data-contact="no">No</button>
+        </div>
+      </div>
+      <div id="peUsernameWrap" class="conditional-reveal">
+        <div class="form-field"><label>Username / Number</label><input type="text" id="pe_handle"></div>
+      </div>
+    </div>
+
+    <div class="anatomy-box">
+      <div class="anatomy-label">Partner's anatomy</div>
+      <div class="anatomy-row">
+        <label class="check-field"><input type="checkbox" id="pe_penis"><span>Has a penis</span></label>
+        <label class="check-field"><input type="checkbox" id="pe_vagina"><span>Has a vagina</span></label>
+        <label class="check-field"><input type="checkbox" id="pe_unknown"><span>Unknown</span></label>
+      </div>
+    </div>
+
+    <div class="anatomy-box">
+      <div class="anatomy-label">Partner's gender identity <span class="optional-tag">Optional</span></div>
+      <div class="form-field"><input type="text" id="pe_genderIdentity" placeholder="e.g. woman, non-binary, trans man"></div>
+    </div>
+
+    <div class="modal-footer split">
+      <button type="button" class="icon-btn danger" id="partnerDeleteBtn" style="display:none;">Delete partner</button>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn btn-ghost" id="partnerEditorCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="partnerEditorSaveBtn">Save Partner</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-backdrop" id="confirmBackdrop">
+  <div class="modal modal-narrow">
+    <h2 id="confirmTitle">Are you sure?</h2>
+    <div class="modal-sub" id="confirmMessage" style="white-space:pre-line;"></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="confirmCancelBtn">Cancel</button>
+      <button type="button" class="btn btn-danger" id="confirmOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'contactLog.entries.v1';
+  const SETTINGS_KEY = 'contactLog.settings.v1';
+  const PARTNERS_KEY = 'contactLog.partners.v1';
+  const TESTS_KEY = 'contactLog.tests.v1';
+
+  const els = {
+    entries: document.getElementById('entries'),
+    countPill: document.getElementById('countPill'),
+    searchInput: document.getElementById('searchInput'),
+    addBtn: document.getElementById('addBtn'),
+    exportDoctorBtn: document.getElementById('exportDoctorBtn'),
+    setupBtn: document.getElementById('setupBtn'),
+    modalBackdrop: document.getElementById('modalBackdrop'),
+    modalTitle: document.getElementById('modalTitle'),
+    entryForm: document.getElementById('entryForm'),
+    cancelBtn: document.getElementById('cancelBtn'),
+    toast: document.getElementById('toast'),
+    setupBackdrop: document.getElementById('setupBackdrop'),
+    setupSaveBtn: document.getElementById('setupSaveBtn'),
+    ageToggle: document.getElementById('ageToggle'),
+    ageInput: document.getElementById('f_age'),
+    exportBackdrop: document.getElementById('exportBackdrop'),
+    partnersBtn: document.getElementById('partnersBtn'),
+    partnersListBackdrop: document.getElementById('partnersListBackdrop'),
+    partnersListBody: document.getElementById('partnersListBody'),
+    partnersListCloseBtn: document.getElementById('partnersListCloseBtn'),
+    partnersListAddBtn: document.getElementById('partnersListAddBtn'),
+    deletedBtn: document.getElementById('deletedBtn'),
+    deletedBackdrop: document.getElementById('deletedBackdrop'),
+    deletedListBody: document.getElementById('deletedListBody'),
+    deletedCloseBtn: document.getElementById('deletedCloseBtn'),
+    testingBtn: document.getElementById('testingBtn'),
+    testingListBackdrop: document.getElementById('testingListBackdrop'),
+    testingListBody: document.getElementById('testingListBody'),
+    testingListCloseBtn: document.getElementById('testingListCloseBtn'),
+    testingListAddBtn: document.getElementById('testingListAddBtn'),
+    testEditorBackdrop: document.getElementById('testEditorBackdrop'),
+    testEditorTitle: document.getElementById('testEditorTitle'),
+    testEditorSaveBtn: document.getElementById('testEditorSaveBtn'),
+    testEditorCancelBtn: document.getElementById('testEditorCancelBtn'),
+    testDeleteBtn: document.getElementById('testDeleteBtn'),
+    partnerEditorBackdrop: document.getElementById('partnerEditorBackdrop'),
+    partnerEditorTitle: document.getElementById('partnerEditorTitle'),
+    partnerEditorSaveBtn: document.getElementById('partnerEditorSaveBtn'),
+    partnerEditorCancelBtn: document.getElementById('partnerEditorCancelBtn'),
+    partnerDeleteBtn: document.getElementById('partnerDeleteBtn'),
+    peContactToggle: document.getElementById('peContactToggle'),
+    peUsernameWrap: document.getElementById('peUsernameWrap'),
+    partnerSelect: document.getElementById('f_partnerSelect'),
+    partnerPreview: document.getElementById('partnerPreview'),
+    addPartnerFromEntryBtn: document.getElementById('addPartnerFromEntryBtn'),
+  };
+
+  const FIELD_IDS = [
+    'age','date',
+    'kissing',
+    'oralGive','oralGiveBarrier','oralGiveFinish','oralGiveSwallow','oralReceive','oralReceiveBarrier','oralReceiveFinish','oralReceiveSwallow',
+    'analGive','analGiveCondom','analGiveFinish','analReceive','analReceiveCondom','analReceiveFinish',
+    'rimGive','rimGiveBarrier','rimReceive','rimReceiveBarrier',
+    'vagGive','vagCondom','vagFinish',
+    'vagReceive','vagReceiveCondom','vagReceiveFinish',
+    'notes'
+  ];
+  const CHECK_FIELDS = FIELD_IDS.filter(f => !['age','date','notes'].includes(f));
+
+  const SETTINGS_DEFAULTS = { penis:false, vagina:false, genderIdentity:'', lastTest:'', prep:'unknown', pep:'unknown', vaccines:[], allergies:'', configured:false };
+
+  let entries = [];
+  let partners = [];
+  let tests = [];
+  let settings = { ...SETTINGS_DEFAULTS };
+  let editingId = null;
+  let ageType = 'exact';
+  let peContactYes = false;
+  let editingPartnerId = null;
+  let partnerEditorReturnTo = null;
+
+  function nextPartnerUUID(){
+    const nums = partners.map(p => parseInt((p.uuid||'').replace('#',''),10)).filter(n=>!isNaN(n));
+    const next = (nums.length ? Math.max(...nums) : 0) + 1;
+    return '#' + String(next).padStart(4,'0');
+  }
+
+  function migrateLegacyEntries(){
+    let changed = false;
+    entries.forEach(e => {
+      if(!e.partnerId && (e.name !== undefined || e.uuid)){
+        const partner = {
+          id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+          uuid: e.uuid || nextPartnerUUID(),
+          name: e.name || '',
+          platform: e.platform || '',
+          handle: e.handle || '',
+          contact: !!e.contact,
+          partnerPenis: !!e.partnerPenis,
+          partnerVagina: !!e.partnerVagina,
+          partnerUnknown: !!e.partnerUnknown,
+        };
+        partners.push(partner);
+        e.partnerId = partner.id;
+        changed = true;
+      }
+    });
+    if(changed){ save(); savePartners(); }
+  }
+
+  const DELETE_RETENTION_DAYS = 7;
+  function activeEntries(){ return entries.filter(e => !e.deletedAt); }
+  function trashedEntries(){ return entries.filter(e => !!e.deletedAt); }
+  function activePartners(){ return partners.filter(p => !p.deletedAt); }
+  function trashedPartners(){ return partners.filter(p => !!p.deletedAt); }
+  function activeTests(){ return tests.filter(t => !t.deletedAt); }
+  function trashedTests(){ return tests.filter(t => !!t.deletedAt); }
+  function daysLeft(deletedAt){
+    const deleted = new Date(deletedAt);
+    const purge = new Date(deleted.getTime() + DELETE_RETENTION_DAYS * 86400000);
+    const msLeft = purge - new Date();
+    return Math.max(0, Math.ceil(msLeft / 86400000));
+  }
+  function purgeExpiredDeletions(){
+    const beforeE = entries.length;
+    entries = entries.filter(e => !e.deletedAt || daysLeft(e.deletedAt) > 0);
+    if(entries.length !== beforeE) save();
+    const beforeP = partners.length;
+    partners = partners.filter(p => !p.deletedAt || daysLeft(p.deletedAt) > 0);
+    if(partners.length !== beforeP) savePartners();
+    const beforeT = tests.length;
+    tests = tests.filter(t => !t.deletedAt || daysLeft(t.deletedAt) > 0);
+    if(tests.length !== beforeT) saveTests();
+  }
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      entries = raw ? JSON.parse(raw) : [];
+    }catch(e){ entries = []; }
+    try{
+      const raw = localStorage.getItem(PARTNERS_KEY);
+      partners = raw ? JSON.parse(raw) : [];
+    }catch(e){ partners = []; }
+    try{
+      const raw = localStorage.getItem(TESTS_KEY);
+      tests = raw ? JSON.parse(raw) : [];
+    }catch(e){ tests = []; }
+    try{
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      settings = raw ? JSON.parse(raw) : { ...SETTINGS_DEFAULTS };
+    }catch(e){ settings = { ...SETTINGS_DEFAULTS }; }
+    if(!Array.isArray(settings.vaccines)){
+      const migrated = [];
+      if(settings.vaxHpv) migrated.push('HPV');
+      if(settings.vaxHepA) migrated.push('Hepatitis A');
+      if(settings.vaxHepB) migrated.push('Hepatitis B');
+      settings.vaccines = migrated;
+    }
+    migrateLegacyEntries();
+    purgeExpiredDeletions();
+  }
+  let storageOK = true;
+  function save(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      storageOK = true;
+    }catch(e){
+      storageOK = false;
+      showToast('Saved for this session only — this browser is blocking permanent storage');
+    }
+  }
+  function savePartners(){
+    try{ localStorage.setItem(PARTNERS_KEY, JSON.stringify(partners)); }catch(e){}
+  }
+  function saveTests(){
+    try{ localStorage.setItem(TESTS_KEY, JSON.stringify(tests)); }catch(e){}
+  }
+  function saveSettings(){
+    try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){}
+  }
+  function getPartner(id){
+    return partners.find(p => p.id === id) || null;
+  }
+  function showToast(msg){
+    els.toast.textContent = msg;
+    els.toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=> els.toast.classList.remove('show'), 2600);
+  }
+
+  const confirmBackdrop = document.getElementById('confirmBackdrop');
+  const confirmMessage = document.getElementById('confirmMessage');
+  const confirmOkBtn = document.getElementById('confirmOkBtn');
+  const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+  let confirmResolver = null;
+  function showConfirm(message, opts){
+    opts = opts || {};
+    confirmMessage.textContent = message;
+    confirmOkBtn.textContent = opts.confirmText || 'Confirm';
+    confirmBackdrop.classList.add('show');
+    return new Promise(resolve => { confirmResolver = resolve; });
+  }
+  function resolveConfirm(result){
+    confirmBackdrop.classList.remove('show');
+    if(confirmResolver){ confirmResolver(result); confirmResolver = null; }
+  }
+  confirmOkBtn.addEventListener('click', () => resolveConfirm(true));
+  confirmCancelBtn.addEventListener('click', () => resolveConfirm(false));
+  confirmBackdrop.addEventListener('click', ev => { if(ev.target === confirmBackdrop) resolveConfirm(false); });
+
+  function esc(str){
+    return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function ageDisplay(e){
+    if(e.ageType === 'unknown') return 'Unknown';
+    if(!e.age) return '';
+    return e.ageType === 'estimate' ? '~' + e.age : String(e.age);
+  }
+
+  function fmtDate(d){
+    if(!d) return '—';
+    const dt = new Date(d + 'T00:00:00');
+    if(isNaN(dt)) return d;
+    return dt.toLocaleDateString(undefined, { month:'2-digit', day:'2-digit', year:'2-digit' });
+  }
+
+  const VACCINE_LIST = [
+    'HPV', 'Hepatitis A', 'Hepatitis B', 'Meningococcal (MenACWY)', 'Meningococcal B',
+    'Mpox (JYNNEOS)', 'COVID-19', 'Influenza', 'Tdap', 'MMR',
+  ];
+  let selectedVaccines = [];
+
+  function renderVaxChips(){
+    const chipsEl = document.getElementById('vaxChips');
+    chipsEl.innerHTML = selectedVaccines.map((v, i) => `
+      <span class="tag-chip">${esc(v)}<button type="button" data-idx="${i}">×</button></span>
+    `).join('');
+    chipsEl.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedVaccines.splice(parseInt(btn.dataset.idx, 10), 1);
+        renderVaxChips();
+      });
+    });
+  }
+  function renderVaxSuggestions(query){
+    const suggEl = document.getElementById('vaxSuggestions');
+    const q = query.trim().toLowerCase();
+    let matches = VACCINE_LIST.filter(v => !selectedVaccines.some(x => x.toLowerCase() === v.toLowerCase()));
+    if(q) matches = matches.filter(v => v.toLowerCase().includes(q));
+    let html = matches.map(v => `<div class="tag-suggestion" data-value="${esc(v)}">${esc(v)}</div>`).join('');
+    const trimmed = query.trim();
+    if(trimmed && !VACCINE_LIST.some(v => v.toLowerCase() === trimmed.toLowerCase()) && !selectedVaccines.some(v => v.toLowerCase() === trimmed.toLowerCase())){
+      html += `<div class="tag-suggestion add-custom" data-value="${esc(trimmed)}">+ Add "${esc(trimmed)}"</div>`;
+    }
+    suggEl.innerHTML = html;
+    suggEl.querySelectorAll('.tag-suggestion').forEach(el => {
+      el.addEventListener('mousedown', ev => {
+        ev.preventDefault();
+        addVaccine(el.dataset.value);
+      });
+    });
+    return html.length > 0;
+  }
+  function addVaccine(v){
+    v = v.trim();
+    if(!v) return;
+    if(!selectedVaccines.some(x => x.toLowerCase() === v.toLowerCase())) selectedVaccines.push(v);
+    document.getElementById('vaxSearchInput').value = '';
+    renderVaxChips();
+    renderVaxSuggestions('');
+    document.getElementById('vaxSuggestions').classList.remove('open');
+  }
+  const vaxSearchInput = document.getElementById('vaxSearchInput');
+  const vaxSuggestions = document.getElementById('vaxSuggestions');
+  vaxSearchInput.addEventListener('input', () => {
+    const hasResults = renderVaxSuggestions(vaxSearchInput.value);
+    vaxSuggestions.classList.toggle('open', hasResults);
+  });
+  vaxSearchInput.addEventListener('focus', () => {
+    const hasResults = renderVaxSuggestions(vaxSearchInput.value);
+    vaxSuggestions.classList.toggle('open', hasResults);
+  });
+  vaxSearchInput.addEventListener('blur', () => {
+    setTimeout(() => vaxSuggestions.classList.remove('open'), 150);
+  });
+  vaxSearchInput.addEventListener('keydown', ev => {
+    if(ev.key === 'Enter'){
+      ev.preventDefault();
+      const val = vaxSearchInput.value.trim();
+      if(val) addVaccine(val);
+    }
+  });
+
+  function setTriToggle(containerId, value){
+    document.querySelectorAll('#' + containerId + ' .yesno-pill').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.value === value);
+    });
+  }
+  function getTriToggle(containerId){
+    const active = document.querySelector('#' + containerId + ' .yesno-pill.active');
+    return active ? active.dataset.value : 'unknown';
+  }
+  document.querySelectorAll('#prepToggle .yesno-pill, #pepToggle .yesno-pill').forEach(btn => {
+    btn.addEventListener('click', () => setTriToggle(btn.closest('.yesno-toggle').id, btn.dataset.value));
+  });
+
+  function openSetup(){
+    document.getElementById('s_penis').checked = !!settings.penis;
+    document.getElementById('s_vagina').checked = !!settings.vagina;
+    document.getElementById('s_genderIdentity').value = settings.genderIdentity || '';
+    setTriToggle('prepToggle', settings.prep || 'unknown');
+    setTriToggle('pepToggle', settings.pep || 'unknown');
+    selectedVaccines = [...(settings.vaccines || [])];
+    renderVaxChips();
+    document.getElementById('vaxSearchInput').value = '';
+    document.getElementById('s_allergies').value = settings.allergies || '';
+    els.setupBackdrop.classList.add('show');
+  }
+  function closeSetup(){ els.setupBackdrop.classList.remove('show'); }
+
+  els.setupBtn.addEventListener('click', openSetup);
+  els.setupSaveBtn.addEventListener('click', () => {
+    const penis = document.getElementById('s_penis').checked;
+    const vagina = document.getElementById('s_vagina').checked;
+    if(!penis && !vagina){
+      showToast('Select at least one option to continue');
+      return;
+    }
+    settings.penis = penis;
+    settings.vagina = vagina;
+    settings.genderIdentity = document.getElementById('s_genderIdentity').value.trim();
+    settings.prep = getTriToggle('prepToggle');
+    settings.pep = getTriToggle('pepToggle');
+    settings.vaccines = [...selectedVaccines];
+    settings.allergies = document.getElementById('s_allergies').value.trim();
+    settings.configured = true;
+    saveSettings();
+    closeSetup();
+    showToast('Profile saved');
+  });
+  els.setupBackdrop.addEventListener('click', ev => {
+    if(ev.target === els.setupBackdrop && settings.configured) closeSetup();
+  });
+
+  load();
+  if(!settings.configured) {
+    openSetup();
+  }
+})();
+</script>
 </body>
 </html>
