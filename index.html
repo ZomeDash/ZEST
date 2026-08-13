@@ -707,6 +707,22 @@
   }
   .toast.show{ opacity:1; transform: translate(-50%, 0); }
 
+  /* Mobile-only app: these are unconditional base styles, not breakpoint overrides */
+  .form-grid{ grid-template-columns: 1fr; }
+  .card-date{ display:none; }
+  .wrap{ padding: 16px 14px 100px; }
+  .modal-backdrop{ padding: 14px 8px; }
+  .modal{ padding: 20px 16px 16px; border-radius: 12px; }
+  .anatomy-box{ padding: 12px 14px; }
+  .card-head{ padding: 12px 14px; gap:10px; }
+  .card-main{ gap:8px; }
+  .age-field{ flex-direction:column; align-items:stretch; }
+  .age-toggle{ width:100%; }
+  .age-pill{ flex:1; }
+  h1{ font-size:21px; }
+  .toolbar{ flex-wrap:wrap; }
+  .count-pill{ order:2; }
+
   /* ---------- action scroll strip (secondary actions) ---------- */
   .action-scroll{
     display:flex;
@@ -746,24 +762,6 @@
     font-size: 15px;
     border-radius: 14px;
     box-shadow: 0 6px 24px rgba(0,0,0,0.45);
-  }
-
-  /* ---------- Mobile-only view adaptations scoped properly inside a media query ---------- */
-  @media (max-width: 768px) {
-    .form-grid{ grid-template-columns: 1fr; }
-    .card-date{ display:none; }
-    .wrap{ padding: 16px 14px 100px; }
-    .modal-backdrop{ padding: 14px 8px; }
-    .modal{ padding: 20px 16px 16px; border-radius: 12px; }
-    .anatomy-box{ padding: 12px 14px; }
-    .card-head{ padding: 12px 14px; gap:10px; }
-    .card-main{ gap:8px; }
-    .age-field{ flex-direction:column; align-items:stretch; }
-    .age-toggle{ width:100%; }
-    .age-pill{ flex:1; }
-    h1{ font-size:21px; }
-    .toolbar{ flex-wrap:wrap; }
-    .count-pill{ order:2; }
   }
 </style>
 </head>
@@ -1350,7 +1348,7 @@
   let ageType = 'exact';
   let peContactYes = false;
   let editingPartnerId = null;
-  let partnerEditorReturnTo = null;
+  let partnerEditorReturnTo = null; // 'entry' | null — where to return focus after saving a partner
 
   function nextPartnerUUID(){
     const nums = partners.map(p => parseInt((p.uuid||'').replace('#',''),10)).filter(n=>!isNaN(n));
@@ -1359,6 +1357,9 @@
   }
 
   function migrateLegacyEntries(){
+    // Older entries stored name/platform/handle/contact/anatomy inline. Split those
+    // out into standalone Partner records (reusing the entry's old UUID) so existing
+    // data keeps working under the new partner model.
     let changed = false;
     entries.forEach(e => {
       if(!e.partnerId && (e.name !== undefined || e.uuid)){
@@ -1444,13 +1445,13 @@
     }
   }
   function savePartners(){
-    try{ localStorage.setItem(PARTNERS_KEY, JSON.stringify(partners)); }catch(e){}
+    try{ localStorage.setItem(PARTNERS_KEY, JSON.stringify(partners)); }catch(e){ /* session-only fallback */ }
   }
   function saveTests(){
-    try{ localStorage.setItem(TESTS_KEY, JSON.stringify(tests)); }catch(e){}
+    try{ localStorage.setItem(TESTS_KEY, JSON.stringify(tests)); }catch(e){ /* session-only fallback */ }
   }
   function saveSettings(){
-    try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){}
+    try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){ /* session-only fallback */ }
   }
   function getPartner(id){
     return partners.find(p => p.id === id) || null;
@@ -1462,6 +1463,7 @@
     showToast._t = setTimeout(()=> els.toast.classList.remove('show'), 2600);
   }
 
+  // ---------- in-app confirm modal (replaces native browser confirm()) ----------
   const confirmBackdrop = document.getElementById('confirmBackdrop');
   const confirmMessage = document.getElementById('confirmMessage');
   const confirmOkBtn = document.getElementById('confirmOkBtn');
@@ -1498,6 +1500,8 @@
     return dt.toLocaleDateString(undefined, { month:'2-digit', day:'2-digit', year:'2-digit' });
   }
 
+  // ---------- tri-state toggle helper (Yes/No/Unknown) ----------
+  // ---------- vaccine tag picker ----------
   const VACCINE_LIST = [
     'HPV', 'Hepatitis A', 'Hepatitis B', 'Meningococcal (MenACWY)', 'Meningococcal B',
     'Mpox (JYNNEOS)', 'COVID-19', 'Influenza', 'Tdap', 'MMR',
@@ -1578,6 +1582,7 @@
     btn.addEventListener('click', () => setTriToggle(btn.closest('.yesno-toggle').id, btn.dataset.value));
   });
 
+  // ---------- setup modal ----------
   function openSetup(){
     document.getElementById('s_penis').checked = !!settings.penis;
     document.getElementById('s_vagina').checked = !!settings.vagina;
@@ -1611,16 +1616,1488 @@
     saveSettings();
     closeSetup();
     showToast('Profile saved');
+    if(pendingEntryId !== undefined){
+      const id = pendingEntryId;
+      pendingEntryId = undefined;
+      openModal(id);
+    }
   });
   els.setupBackdrop.addEventListener('click', ev => {
     if(ev.target === els.setupBackdrop && settings.configured) closeSetup();
   });
 
+  // ---------- data section: full backup report, JSON export/import ----------
+  document.getElementById('fullBackupReportBtn').addEventListener('click', () => {
+    closeSetup();
+    openExportModal('backup');
+  });
+
+  document.getElementById('exportJsonBtn').addEventListener('click', () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      version: 2,
+      entries,
+      partners,
+      tests,
+      settings,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `contact-log-data-${fileTimestamp()}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Data exported');
+  });
+
+  document.getElementById('importJsonBtn').addEventListener('click', () => {
+    document.getElementById('importJsonInput').click();
+  });
+  document.getElementById('importJsonInput').addEventListener('change', ev => {
+    const file = ev.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      let payload;
+      try{
+        payload = JSON.parse(reader.result);
+      }catch(err){
+        showToast('That file doesn\'t look like valid exported data');
+        ev.target.value = '';
+        return;
+      }
+      if(!payload || !Array.isArray(payload.entries) || !Array.isArray(payload.partners)){
+        showToast('That file doesn\'t look like valid exported data');
+        ev.target.value = '';
+        return;
+      }
+      const count = payload.entries.length;
+      const warning = `Import ${count} entr${count===1?'y':'ies'} and ${payload.partners.length} partner${payload.partners.length===1?'':'s'}?\n\nThis REPLACES everything currently on this device. This can't be undone.`;
+      const ok = await showConfirm(warning, { confirmText: 'Import & Replace' });
+      if(!ok){
+        ev.target.value = '';
+        return;
+      }
+      entries = payload.entries;
+      partners = payload.partners;
+      tests = Array.isArray(payload.tests) ? payload.tests : [];
+      if(payload.settings) settings = { ...SETTINGS_DEFAULTS, ...payload.settings };
+      save();
+      savePartners();
+      saveTests();
+      saveSettings();
+      ev.target.value = '';
+      closeSetup();
+      render();
+      showToast('Data imported');
+    };
+    reader.readAsText(file);
+  });
+
+  // ---------- delete all data ----------
+  const deleteAllBackdrop = document.getElementById('deleteAllBackdrop');
+  const deleteAllConfirmInput = document.getElementById('deleteAllConfirmInput');
+  const deleteAllConfirmBtn = document.getElementById('deleteAllConfirmBtn');
+  document.getElementById('deleteAllDataBtn').addEventListener('click', () => {
+    deleteAllConfirmInput.value = '';
+    deleteAllConfirmBtn.disabled = true;
+    deleteAllBackdrop.classList.add('show');
+    setTimeout(() => deleteAllConfirmInput.focus(), 50);
+  });
+  function closeDeleteAll(){ deleteAllBackdrop.classList.remove('show'); }
+  document.getElementById('deleteAllCancelBtn').addEventListener('click', closeDeleteAll);
+  deleteAllBackdrop.addEventListener('click', ev => { if(ev.target === deleteAllBackdrop) closeDeleteAll(); });
+  deleteAllConfirmInput.addEventListener('input', () => {
+    deleteAllConfirmBtn.disabled = deleteAllConfirmInput.value.trim() !== 'DELETE';
+  });
+  deleteAllConfirmBtn.addEventListener('click', () => {
+    if(deleteAllConfirmInput.value.trim() !== 'DELETE') return;
+    entries = [];
+    partners = [];
+    tests = [];
+    settings = { ...SETTINGS_DEFAULTS };
+    save();
+    savePartners();
+    saveTests();
+    saveSettings();
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(PARTNERS_KEY);
+    localStorage.removeItem(TESTS_KEY);
+    localStorage.removeItem(SETTINGS_KEY);
+    closeDeleteAll();
+    closeSetup();
+    render();
+    showToast('All data deleted');
+    if(!settings.configured) openSetup();
+  });
+
+  // ---------- age type toggle ----------
+  let ageLockedByDob = false;
+  function setAgeType(type){
+    ageType = type;
+    els.ageToggle.querySelectorAll('.age-pill').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.ageType === type);
+      btn.disabled = ageLockedByDob;
+    });
+    if(ageLockedByDob){
+      els.ageInput.disabled = true;
+    }else if(type === 'unknown'){
+      els.ageInput.value = '';
+      els.ageInput.disabled = true;
+      els.ageInput.placeholder = 'Unknown';
+    }else{
+      els.ageInput.disabled = false;
+      els.ageInput.placeholder = type === 'estimate' ? 'Approx. age' : '—';
+    }
+  }
+  function setAgeLocked(isLocked){
+    ageLockedByDob = isLocked;
+    setAgeType(ageType);
+    const note = document.getElementById('ageLockedNote');
+    if(note) note.style.display = isLocked ? '' : 'none';
+  }
+  els.ageToggle.querySelectorAll('.age-pill').forEach(btn => {
+    btn.addEventListener('click', () => { if(!ageLockedByDob) setAgeType(btn.dataset.ageType); });
+  });
+
+  // ---------- partner editor: contactable reveal ----------
+  function setPeContact(isYes){
+    peContactYes = isYes;
+    els.peContactToggle.querySelectorAll('.yesno-pill').forEach(btn => {
+      btn.classList.toggle('active', (btn.dataset.contact === 'yes') === isYes);
+    });
+    els.peUsernameWrap.classList.toggle('open', isYes);
+  }
+  els.peContactToggle.querySelectorAll('.yesno-pill').forEach(btn => {
+    btn.addEventListener('click', () => setPeContact(btn.dataset.contact === 'yes'));
+  });
+
+  // ---------- anatomy mutual exclusivity ----------
+  function wireAnatomyExclusivity(penisId, vaginaId, unknownId){
+    const penisEl = document.getElementById(penisId);
+    const vaginaEl = document.getElementById(vaginaId);
+    const unknownEl = document.getElementById(unknownId);
+    unknownEl.addEventListener('change', () => {
+      if(unknownEl.checked){
+        penisEl.checked = false;
+        vaginaEl.checked = false;
+      }
+      penisEl.dispatchEvent(new Event('change'));
+    });
+    [penisEl, vaginaEl].forEach(el => {
+      el.addEventListener('change', () => {
+        if(el.checked) unknownEl.checked = false;
+      });
+    });
+  }
+
+  // ---------- section visibility logic ----------
+  function updateSectionVisibility(){
+    const selectedPartner = getPartner(els.partnerSelect.value);
+    const partnerPenis = !!(selectedPartner && selectedPartner.partnerPenis);
+    const partnerVagina = !!(selectedPartner && selectedPartner.partnerVagina);
+    const partnerUnknown = !!(selectedPartner && selectedPartner.partnerUnknown);
+    const partnerKnown = partnerPenis || partnerVagina;
+    const partnerSelected = partnerKnown || partnerUnknown;
+    const selfKnown = settings.penis || settings.vagina;
+    const selfSelected = selfKnown;
+
+    const anatomySelected = selfSelected || partnerSelected;
+    const anyUnknown = partnerUnknown;
+
+    let visibility;
+    let note;
+    if(!selectedPartner){
+      visibility = { fs_kissing:false, fs_oralGive:false, fs_oralReceive:false, fs_analGive:false, fs_analReceive:false, fs_rimGive:false, fs_rimReceive:false, fs_vagGive:false, fs_vagReceive:false };
+      note = 'Select or add a partner above to see relevant sections.';
+    }else if(!anatomySelected){
+      visibility = { fs_kissing:false, fs_oralGive:false, fs_oralReceive:false, fs_analGive:false, fs_analReceive:false, fs_rimGive:false, fs_rimReceive:false, fs_vagGive:false, fs_vagReceive:false };
+      note = 'Select anatomy above to see relevant sections.';
+    }else if(anyUnknown){
+      visibility = { fs_kissing:true, fs_oralGive:false, fs_oralReceive:true, fs_analGive:true, fs_analReceive:true, fs_rimGive:false, fs_rimReceive:false, fs_vagGive:false, fs_vagReceive:false };
+      note = "Anatomy unknown — showing what doesn't require knowing partner's anatomy.";
+    }else{
+      visibility = {
+        fs_kissing:     true,
+        fs_oralGive:    partnerKnown,
+        fs_oralReceive: true,
+        fs_analGive:    true,
+        fs_analReceive: partnerPenis,
+        fs_rimGive:     true,
+        fs_rimReceive:  true,
+        fs_vagGive:     settings.penis && partnerVagina,
+        fs_vagReceive:  partnerPenis && settings.vagina,
+      };
+      note = "Showing sections relevant to you and your partner's anatomy.";
+    }
+
+    Object.keys(visibility).forEach(id => {
+      const fs = document.getElementById(id);
+      if(!fs) return;
+      // Never hide a section that already has a checked box in it (don't hide real data)
+      const hasChecked = Array.from(fs.querySelectorAll('input[type=checkbox]')).some(cb => cb.checked);
+      const show = visibility[id] || hasChecked;
+      fs.classList.toggle('hidden-section', !show);
+    });
+
+    // Hide a category's outer fieldset entirely if none of its subsections are showing
+    const CATEGORY_GROUPS = {
+      fs_oral: ['fs_kissing','fs_oralGive','fs_oralReceive'],
+      fs_anal: ['fs_analGive','fs_analReceive'],
+      fs_rim:  ['fs_rimGive','fs_rimReceive'],
+      fs_vag:  ['fs_vagGive','fs_vagReceive'],
+    };
+    Object.keys(CATEGORY_GROUPS).forEach(catId => {
+      const cat = document.getElementById(catId);
+      if(!cat) return;
+      const anyChildVisible = CATEGORY_GROUPS[catId].some(childId => {
+        const child = document.getElementById(childId);
+        return child && !child.classList.contains('hidden-section');
+      });
+      cat.classList.toggle('hidden-section', !anyChildVisible);
+    });
+
+    const noteEl = document.getElementById('sectionsNoteText');
+    if(noteEl) noteEl.textContent = note;
+  }
+
+  wireAnatomyExclusivity('pe_penis', 'pe_vagina', 'pe_unknown');
+
+  // ---------- partner select (entry form) ----------
+  function partnerLabel(p){
+    return `${p.uuid} — ${p.name || p.uuid}`;
+  }
+  function populatePartnerSelect(selectId){
+    const current = els.partnerSelect.value;
+    const active = activePartners();
+    els.partnerSelect.innerHTML = '<option value="">Select a partner…</option>' +
+      active.slice().sort((a,b) => (a.name||'').localeCompare(b.name||'')).map(p =>
+        `<option value="${p.id}">${esc(partnerLabel(p))}</option>`
+      ).join('');
+    const toSelect = selectId !== undefined ? selectId : current;
+    if(toSelect && active.some(p => p.id === toSelect)){
+      els.partnerSelect.value = toSelect;
+    }
+    updatePartnerPreview();
+  }
+  function calcAge(dobStr, atDateStr){
+    const dob = new Date(dobStr + 'T00:00:00');
+    const at = atDateStr ? new Date(atDateStr + 'T00:00:00') : new Date();
+    if(isNaN(dob) || isNaN(at)) return null;
+    let age = at.getFullYear() - dob.getFullYear();
+    const m = at.getMonth() - dob.getMonth();
+    if(m < 0 || (m === 0 && at.getDate() < dob.getDate())) age--;
+    return age >= 0 ? age : null;
+  }
+  function autofillAge(p){
+    if(!p){ setAgeLocked(false); return; }
+    if(p.dob){
+      setAgeLocked(true);
+      const dateVal = document.getElementById('f_date').value;
+      const age = calcAge(p.dob, dateVal);
+      if(age !== null){
+        document.getElementById('f_age').value = age;
+        setAgeType('exact');
+      }
+      return;
+    }
+    setAgeLocked(false);
+    if(editingId) return; // don't clobber a manually-entered value the user is editing
+    if(p.lastAge){
+      document.getElementById('f_age').value = p.lastAge;
+      setAgeType(p.lastAgeType || 'exact');
+    }else{
+      document.getElementById('f_age').value = '';
+      setAgeType('exact');
+    }
+  }
+  document.getElementById('f_date').addEventListener('change', () => {
+    autofillAge(getPartner(els.partnerSelect.value));
+  });
+
+  function updatePartnerPreview(){
+    const p = getPartner(els.partnerSelect.value);
+    if(!p){
+      els.partnerPreview.classList.remove('show');
+      els.partnerPreview.innerHTML = '';
+      updateSectionVisibility();
+      return;
+    }
+    const anatomy = p.partnerUnknown ? 'Unknown' : [p.partnerPenis?'Penis':null, p.partnerVagina?'Vagina':null].filter(Boolean).join(' + ') || 'Not specified';
+    els.partnerPreview.innerHTML = `
+      <span class="pp-uuid">${esc(p.uuid)}</span><span class="pp-name">${esc(p.name) || esc(p.uuid)}</span>
+      <div style="margin-top:6px;">${[p.platform, anatomy, p.contact ? ('Contactable' + (p.handle ? ': ' + esc(p.handle) : '')) : 'Not contactable'].filter(Boolean).map(esc).join(' · ')}</div>
+      <button type="button" class="link-btn" id="editSelectedPartnerBtn" style="margin-top:8px;">Edit this partner</button>
+    `;
+    els.partnerPreview.classList.add('show');
+    document.getElementById('editSelectedPartnerBtn').addEventListener('click', () => openPartnerEditor(p.id, 'entry'));
+    autofillAge(p);
+    updateSectionVisibility();
+  }
+  els.partnerSelect.addEventListener('change', updatePartnerPreview);
+  els.addPartnerFromEntryBtn.addEventListener('click', () => openPartnerEditor(null, 'entry'));
+
+  // ---------- partner editor modal ----------
+  function openPartnerEditor(partnerId, returnTo){
+    editingPartnerId = partnerId || null;
+    partnerEditorReturnTo = returnTo || null;
+    els.partnerEditorTitle.textContent = editingPartnerId ? 'Edit Partner' : 'New Partner';
+    els.partnerDeleteBtn.style.display = editingPartnerId ? '' : 'none';
+
+    document.getElementById('pe_name').value = '';
+    document.getElementById('pe_platform').value = '';
+    document.getElementById('pe_handle').value = '';
+    document.getElementById('pe_dob').value = '';
+    document.getElementById('pe_genderIdentity').value = '';
+    document.getElementById('pe_penis').checked = false;
+    document.getElementById('pe_vagina').checked = false;
+    document.getElementById('pe_unknown').checked = false;
+    setPeContact(false);
+
+    if(editingPartnerId){
+      const p = getPartner(editingPartnerId);
+      if(p){
+        document.getElementById('pe_name').value = p.name || '';
+        document.getElementById('pe_platform').value = p.platform || '';
+        document.getElementById('pe_handle').value = p.handle || '';
+        document.getElementById('pe_dob').value = p.dob || '';
+        document.getElementById('pe_genderIdentity').value = p.genderIdentity || '';
+        document.getElementById('pe_penis').checked = !!p.partnerPenis;
+        document.getElementById('pe_vagina').checked = !!p.partnerVagina;
+        document.getElementById('pe_unknown').checked = !!p.partnerUnknown;
+        setPeContact(!!p.contact);
+      }
+    }
+    els.partnerEditorBackdrop.classList.add('show');
+    setTimeout(() => document.getElementById('pe_name').focus(), 50);
+  }
+  function closePartnerEditor(){
+    els.partnerEditorBackdrop.classList.remove('show');
+    editingPartnerId = null;
+  }
+  els.partnerEditorCancelBtn.addEventListener('click', closePartnerEditor);
+  els.partnerEditorBackdrop.addEventListener('click', ev => { if(ev.target === els.partnerEditorBackdrop) closePartnerEditor(); });
+
+  els.partnerEditorSaveBtn.addEventListener('click', () => {
+    const data = {
+      name: document.getElementById('pe_name').value.trim(),
+      platform: document.getElementById('pe_platform').value.trim(),
+      handle: document.getElementById('pe_handle').value.trim(),
+      dob: document.getElementById('pe_dob').value,
+      genderIdentity: document.getElementById('pe_genderIdentity').value.trim(),
+      contact: peContactYes,
+      partnerPenis: document.getElementById('pe_penis').checked,
+      partnerVagina: document.getElementById('pe_vagina').checked,
+      partnerUnknown: document.getElementById('pe_unknown').checked,
+    };
+    let savedId;
+    if(editingPartnerId){
+      const idx = partners.findIndex(p => p.id === editingPartnerId);
+      if(idx > -1) partners[idx] = { ...partners[idx], ...data };
+      savedId = editingPartnerId;
+      showToast('Partner updated');
+    }else{
+      const partner = { id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,7), uuid: nextPartnerUUID(), ...data };
+      partners.push(partner);
+      savedId = partner.id;
+      showToast('Partner saved');
+    }
+    savePartners();
+    closePartnerEditor();
+
+    if(partnerEditorReturnTo === 'entry'){
+      populatePartnerSelect(savedId);
+    }
+    if(els.partnersListBackdrop.classList.contains('show')){
+      renderPartnersList();
+    }
+    render();
+  });
+
+  els.partnerDeleteBtn.addEventListener('click', async () => {
+    if(!editingPartnerId) return;
+    const linkedCount = activeEntries().filter(e => e.partnerId === editingPartnerId).length;
+    const msg = linkedCount
+      ? `Move this partner and ${linkedCount} linked ${linkedCount === 1 ? 'entry' : 'entries'} to Deleted? Kept for ${DELETE_RETENTION_DAYS} days, then removed automatically.`
+      : `Move this partner to Deleted? Kept for ${DELETE_RETENTION_DAYS} days, then removed automatically.`;
+    const ok = await showConfirm(msg, { confirmText: 'Move to Deleted' });
+    if(!ok) return;
+    const now = new Date().toISOString();
+    const p = getPartner(editingPartnerId);
+    if(p) p.deletedAt = now;
+    entries.forEach(e => { if(e.partnerId === editingPartnerId && !e.deletedAt) e.deletedAt = now; });
+    save();
+    savePartners();
+    closePartnerEditor();
+    if(els.partnerSelect.value === editingPartnerId) populatePartnerSelect('');
+    else populatePartnerSelect();
+    if(els.partnersListBackdrop.classList.contains('show')) renderPartnersList();
+    render();
+    showToast('Partner moved to Deleted');
+  });
+
+  // ---------- partners list modal ----------
+  function renderPartnersList(){
+    const active = activePartners();
+    if(!active.length){
+      els.partnersListBody.innerHTML = `<div class="empty-state"><p>No partners saved yet.</p></div>`;
+      return;
+    }
+    els.partnersListBody.innerHTML = active.slice().sort((a,b) => (a.name||'').localeCompare(b.name||'')).map(p => {
+      const count = activeEntries().filter(e => e.partnerId === p.id).length;
+      const anatomy = p.partnerUnknown ? 'Unknown' : [p.partnerPenis?'Penis':null, p.partnerVagina?'Vagina':null].filter(Boolean).join(' + ') || 'Not specified';
+      const meta = [p.platform, anatomy, `${count} ${count===1?'entry':'entries'}`].filter(Boolean).join(' · ');
+      return `
+        <div class="partner-row">
+          <span class="card-id">${esc(p.uuid)}</span>
+          <div class="partner-row-main">
+            <div class="partner-row-name">${esc(p.name) || esc(p.uuid)}</div>
+            <div class="partner-row-meta">${esc(meta)}</div>
+          </div>
+          <div class="partner-row-controls">
+            <button class="icon-btn edit-partner-btn" type="button" data-id="${p.id}">Edit</button>
+          </div>
+        </div>`;
+    }).join('');
+    els.partnersListBody.querySelectorAll('.edit-partner-btn').forEach(btn => {
+      btn.addEventListener('click', () => openPartnerEditor(btn.dataset.id, null));
+    });
+  }
+  function openPartnersList(){
+    renderPartnersList();
+    els.partnersListBackdrop.classList.add('show');
+  }
+  function closePartnersList(){ els.partnersListBackdrop.classList.remove('show'); }
+  els.partnersBtn.addEventListener('click', openPartnersList);
+  els.partnersListCloseBtn.addEventListener('click', closePartnersList);
+  els.partnersListAddBtn.addEventListener('click', () => openPartnerEditor(null, null));
+  els.partnersListBackdrop.addEventListener('click', ev => { if(ev.target === els.partnersListBackdrop) closePartnersList(); });
+
+  // ---------- testing section ----------
+  let editingTestId = null;
+  let resultStatus = 'pending';
+
+  function setResultStatus(v, fromUserClick){
+    resultStatus = v;
+    document.querySelectorAll('#resultStatusToggle .yesno-pill').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.value === v);
+    });
+    document.getElementById('detectedNotesWrap').classList.toggle('open', v === 'detected');
+    if(fromUserClick && (v === 'clear' || v === 'detected')){
+      const resultsDateEl = document.getElementById('te_resultsDate');
+      if(!resultsDateEl.value) resultsDateEl.value = todayISO();
+    }
+  }
+  document.querySelectorAll('#resultStatusToggle .yesno-pill').forEach(btn => {
+    btn.addEventListener('click', () => setResultStatus(btn.dataset.value, true));
+  });
+
+  function summarizeTestResults(test){
+    if(test.resultStatus === 'clear') return { text: 'All clear', hasPositive: false };
+    if(test.resultStatus === 'detected') return { text: 'Detected: ' + (test.detectedDetails || 'see notes'), hasPositive: true };
+    return { text: 'Pending', hasPositive: false };
+  }
+
+  function renderTestingList(){
+    const active = activeTests();
+    if(!active.length){
+      els.testingListBody.innerHTML = `<div class="empty-state"><p>No tests logged yet.</p></div>`;
+      return;
+    }
+    const sorted = active.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    els.testingListBody.innerHTML = sorted.map(t => {
+      const summary = summarizeTestResults(t);
+      return `
+        <div class="test-row" data-id="${t.id}">
+          <div class="test-row-date">${t.date ? fmtDate(t.date) : 'No date'}</div>
+          <div class="test-row-summary ${summary.hasPositive ? 'has-positive' : ''}">${esc(summary.text)}</div>
+        </div>`;
+    }).join('');
+    els.testingListBody.querySelectorAll('.test-row').forEach(row => {
+      row.addEventListener('click', () => openTestEditor(row.dataset.id));
+    });
+  }
+
+  function openTestingList(){
+    renderTestingList();
+    els.testingListBackdrop.classList.add('show');
+  }
+  function closeTestingList(){ els.testingListBackdrop.classList.remove('show'); }
+  els.testingBtn.addEventListener('click', openTestingList);
+  els.testingListCloseBtn.addEventListener('click', closeTestingList);
+  els.testingListBackdrop.addEventListener('click', ev => { if(ev.target === els.testingListBackdrop) closeTestingList(); });
+  document.querySelectorAll('.services-link-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.open(btn.dataset.url, '_blank', 'noopener');
+    });
+  });
+
+  function openTestEditor(testId){
+    editingTestId = testId || null;
+    els.testEditorTitle.textContent = editingTestId ? 'Edit Test' : 'New Test';
+    els.testDeleteBtn.style.display = editingTestId ? '' : 'none';
+
+    document.getElementById('te_date').value = todayISO();
+    document.getElementById('te_date').max = todayISO();
+    document.getElementById('te_resultsDate').value = '';
+    document.getElementById('te_symptoms').value = '';
+    document.getElementById('te_treatment').value = '';
+    document.getElementById('te_notes').value = '';
+    document.getElementById('te_detectedDetails').value = '';
+    setResultStatus('pending');
+
+    if(editingTestId){
+      const t = tests.find(x => x.id === editingTestId);
+      if(t){
+        document.getElementById('te_date').value = t.date || todayISO();
+        document.getElementById('te_resultsDate').value = t.resultsDate || '';
+        document.getElementById('te_symptoms').value = t.symptoms || '';
+        document.getElementById('te_treatment').value = t.treatment || '';
+        document.getElementById('te_notes').value = t.notes || '';
+        document.getElementById('te_detectedDetails').value = t.detectedDetails || '';
+        setResultStatus(t.resultStatus || 'pending');
+      }
+    }
+    els.testEditorBackdrop.classList.add('show');
+  }
+  function closeTestEditor(){
+    els.testEditorBackdrop.classList.remove('show');
+    editingTestId = null;
+  }
+  els.testEditorCancelBtn.addEventListener('click', closeTestEditor);
+  els.testingListAddBtn.addEventListener('click', () => openTestEditor(null));
+  els.testEditorBackdrop.addEventListener('click', ev => { if(ev.target === els.testEditorBackdrop) closeTestEditor(); });
+
+  els.testEditorSaveBtn.addEventListener('click', () => {
+    const dateVal = document.getElementById('te_date').value;
+    if(!dateVal){ showToast('Pick a date for this test'); return; }
+    if(dateVal > todayISO()){ showToast("Date can't be in the future"); return; }
+    const data = {
+      date: dateVal,
+      resultsDate: document.getElementById('te_resultsDate').value,
+      symptoms: document.getElementById('te_symptoms').value.trim(),
+      treatment: document.getElementById('te_treatment').value.trim(),
+      notes: document.getElementById('te_notes').value.trim(),
+      resultStatus,
+      detectedDetails: document.getElementById('te_detectedDetails').value.trim(),
+    };
+    if(editingTestId){
+      const idx = tests.findIndex(t => t.id === editingTestId);
+      if(idx > -1) tests[idx] = { ...tests[idx], ...data };
+      showToast('Test updated');
+    }else{
+      tests.push({ id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2,7), ...data });
+      showToast('Test saved');
+    }
+    saveTests();
+    closeTestEditor();
+    renderTestingList();
+  });
+  els.testDeleteBtn.addEventListener('click', async () => {
+    if(!editingTestId) return;
+    const t = tests.find(x => x.id === editingTestId);
+    if(!t) return;
+    const ok = await showConfirm(`Move this test record to Deleted? Kept for ${DELETE_RETENTION_DAYS} days, then removed automatically.`, { confirmText: 'Move to Deleted' });
+    if(!ok) return;
+    t.deletedAt = new Date().toISOString();
+    saveTests();
+    closeTestEditor();
+    renderTestingList();
+    showToast('Test moved to Deleted');
+  });
+
+  // ---------- deleted entries modal ----------
+  function renderDeletedList(){
+    const trashedP = trashedPartners().sort((a,b) => (b.deletedAt||'').localeCompare(a.deletedAt||''));
+    const trashedE = trashedEntries().sort((a,b) => (b.deletedAt||'').localeCompare(a.deletedAt||''));
+    const trashedT = trashedTests().sort((a,b) => (b.deletedAt||'').localeCompare(a.deletedAt||''));
+
+    if(!trashedP.length && !trashedE.length && !trashedT.length){
+      els.deletedListBody.innerHTML = `<div class="empty-state"><p>Nothing in here right now.</p></div>`;
+      return;
+    }
+
+    let html = '';
+    if(trashedP.length){
+      html += `<div class="subsection-title" style="margin:0 0 8px;">Partners</div>`;
+      html += trashedP.map(p => {
+        const left = daysLeft(p.deletedAt);
+        const linkedCount = entries.filter(e => e.partnerId === p.id && e.deletedAt).length;
+        return `
+          <div class="deleted-row" id="delp-${p.id}">
+            <div class="deleted-row-top">
+              <span class="card-id">${esc(p.uuid)}</span>
+              <div class="deleted-row-main">
+                <div class="deleted-row-name">${esc(p.name) || esc(p.uuid)}</div>
+                <div class="deleted-row-meta">${linkedCount} linked ${linkedCount===1?'entry':'entries'}</div>
+              </div>
+              <span class="deleted-badge">${left === 0 ? 'Removing soon' : left + 'd left'}</span>
+            </div>
+            <div class="deleted-row-controls">
+              <button class="icon-btn restore-partner-btn" type="button" data-id="${p.id}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Restore
+              </button>
+              <button class="icon-btn danger perm-del-partner-btn" type="button" data-id="${p.id}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0l-1 14a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Delete Permanently
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    if(trashedE.length){
+      html += `<div class="subsection-title" style="margin:${trashedP.length ? '18px' : '0'} 0 8px;">Entries</div>`;
+      html += trashedE.map(e => {
+        const p = getPartner(e.partnerId) || {};
+        const left = daysLeft(e.deletedAt);
+        const partnerAlsoDeleted = !!p.deletedAt;
+        return `
+          <div class="deleted-row" id="del-${e.id}">
+            <div class="deleted-row-top">
+              <span class="card-id">${esc(p.uuid || '—')}</span>
+              <div class="deleted-row-main">
+                <div class="deleted-row-name">${esc(p.name) || esc(p.uuid || '—')}</div>
+                <div class="deleted-row-meta">${e.date ? fmtDate(e.date) : 'No date'}${partnerAlsoDeleted ? ' · partner also deleted' : ''}</div>
+              </div>
+              <span class="deleted-badge">${left === 0 ? 'Removing soon' : left + 'd left'}</span>
+            </div>
+            <div class="deleted-row-controls">
+              <button class="icon-btn restore-btn" type="button" data-id="${e.id}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Restore
+              </button>
+              <button class="icon-btn danger perm-del-btn" type="button" data-id="${e.id}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0l-1 14a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Delete Permanently
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    if(trashedT.length){
+      html += `<div class="subsection-title" style="margin:${(trashedP.length||trashedE.length) ? '18px' : '0'} 0 8px;">Tests</div>`;
+      html += trashedT.map(t => {
+        const left = daysLeft(t.deletedAt);
+        const summary = summarizeTestResults(t);
+        return `
+          <div class="deleted-row" id="delt-${t.id}">
+            <div class="deleted-row-top">
+              <div class="deleted-row-main">
+                <div class="deleted-row-name">${t.date ? fmtDate(t.date) : 'No date'}</div>
+                <div class="deleted-row-meta">${esc(summary.text)}</div>
+              </div>
+              <span class="deleted-badge">${left === 0 ? 'Removing soon' : left + 'd left'}</span>
+            </div>
+            <div class="deleted-row-controls">
+              <button class="icon-btn restore-test-btn" type="button" data-id="${t.id}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Restore
+              </button>
+              <button class="icon-btn danger perm-del-test-btn" type="button" data-id="${t.id}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0l-1 14a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Delete Permanently
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+    els.deletedListBody.innerHTML = html;
+
+    els.deletedListBody.querySelectorAll('.restore-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const e = entries.find(x => x.id === btn.dataset.id);
+        if(e){ delete e.deletedAt; save(); }
+        renderDeletedList();
+        render();
+        showToast('Entry restored');
+      });
+    });
+    els.deletedListBody.querySelectorAll('.perm-del-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ok = await showConfirm('Permanently delete this entry? This cannot be undone.', { confirmText: 'Delete Permanently' });
+        if(!ok) return;
+        entries = entries.filter(x => x.id !== btn.dataset.id);
+        save();
+        renderDeletedList();
+        showToast('Entry permanently deleted');
+      });
+    });
+    els.deletedListBody.querySelectorAll('.restore-partner-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = partners.find(x => x.id === btn.dataset.id);
+        if(p) delete p.deletedAt;
+        entries.forEach(e => { if(e.partnerId === btn.dataset.id) delete e.deletedAt; });
+        savePartners();
+        save();
+        renderDeletedList();
+        render();
+        populatePartnerSelect();
+        showToast('Partner restored');
+      });
+    });
+    els.deletedListBody.querySelectorAll('.perm-del-partner-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const linkedCount = entries.filter(e => e.partnerId === btn.dataset.id).length;
+        const msg = linkedCount
+          ? `Permanently delete this partner and ${linkedCount} linked ${linkedCount===1?'entry':'entries'}? This cannot be undone.`
+          : 'Permanently delete this partner? This cannot be undone.';
+        const ok = await showConfirm(msg, { confirmText: 'Delete Permanently' });
+        if(!ok) return;
+        entries = entries.filter(e => e.partnerId !== btn.dataset.id);
+        partners = partners.filter(p => p.id !== btn.dataset.id);
+        save();
+        savePartners();
+        renderDeletedList();
+        render();
+        showToast('Partner permanently deleted');
+      });
+    });
+    els.deletedListBody.querySelectorAll('.restore-test-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const t = tests.find(x => x.id === btn.dataset.id);
+        if(t){ delete t.deletedAt; saveTests(); }
+        renderDeletedList();
+        renderTestingList();
+        showToast('Test restored');
+      });
+    });
+    els.deletedListBody.querySelectorAll('.perm-del-test-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ok = await showConfirm('Permanently delete this test record? This cannot be undone.', { confirmText: 'Delete Permanently' });
+        if(!ok) return;
+        tests = tests.filter(x => x.id !== btn.dataset.id);
+        saveTests();
+        renderDeletedList();
+        renderTestingList();
+        showToast('Test permanently deleted');
+      });
+    });
+  }
+  function openDeletedModal(){
+    renderDeletedList();
+    els.deletedBackdrop.classList.add('show');
+  }
+  function closeDeletedModal(){ els.deletedBackdrop.classList.remove('show'); }
+  els.deletedBtn.addEventListener('click', openDeletedModal);
+  els.deletedCloseBtn.addEventListener('click', closeDeletedModal);
+  els.deletedBackdrop.addEventListener('click', ev => { if(ev.target === els.deletedBackdrop) closeDeletedModal(); });
+
+
+  // ---------- progressive checkbox trees ----------
+  // Each root's children become visible together once the root is checked (parallel —
+  // e.g. Condom used and Finish don't depend on each other). A child can itself carry
+  // its own children for a true sequential dependency (e.g. Swallow needs Finish first).
+  const SECTION_TREES = {
+    oralGive:    ['oralGiveBarrier', { id: 'oralGiveFinish', children: ['oralGiveSwallow'] }],
+    oralReceive: ['oralReceiveBarrier', { id: 'oralReceiveFinish', children: ['oralReceiveSwallow'] }],
+    analGive:    ['analGiveCondom', 'analGiveFinish'],
+    analReceive: ['analReceiveCondom', 'analReceiveFinish'],
+    rimGive:     ['rimGiveBarrier'],
+    rimReceive:  ['rimReceiveBarrier'],
+    vagGive:     ['vagCondom', 'vagFinish'],
+    vagReceive:  ['vagReceiveCondom', 'vagReceiveFinish'],
+  };
+  function flattenTree(nodes){
+    let ids = [];
+    nodes.forEach(node => {
+      if(typeof node === 'string'){ ids.push(node); }
+      else{ ids.push(node.id); if(node.children) ids = ids.concat(flattenTree(node.children)); }
+    });
+    return ids;
+  }
+  function applyTreeVisibility(parentChecked, nodes){
+    nodes.forEach(node => {
+      const id = typeof node === 'string' ? node : node.id;
+      const children = typeof node === 'string' ? null : node.children;
+      const cb = document.getElementById('f_' + id);
+      if(!cb) return;
+      const wrapper = cb.closest('.check-field');
+      if(parentChecked){
+        wrapper.classList.remove('hidden-check');
+      }else{
+        wrapper.classList.add('hidden-check');
+        cb.checked = false;
+      }
+      if(children) applyTreeVisibility(parentChecked && cb.checked, children);
+    });
+  }
+  function updateSectionTree(rootId){
+    const rootCb = document.getElementById('f_' + rootId);
+    if(!rootCb) return;
+    applyTreeVisibility(rootCb.checked, SECTION_TREES[rootId]);
+  }
+  function updateAllChains(){ Object.keys(SECTION_TREES).forEach(updateSectionTree); }
+  Object.keys(SECTION_TREES).forEach(rootId => {
+    const allIds = [rootId, ...flattenTree(SECTION_TREES[rootId])];
+    allIds.forEach(id => {
+      const cb = document.getElementById('f_' + id);
+      if(cb) cb.addEventListener('change', () => updateSectionTree(rootId));
+    });
+  });
+
+  function render(){
+    const q = els.searchInput.value.trim().toLowerCase();
+    const active = activeEntries();
+    const filtered = active
+      .slice()
+      .sort((a,b) => (b.date||'').localeCompare(a.date||''))
+      .filter(e => {
+        if(!q) return true;
+        const p = getPartner(e.partnerId) || {};
+        return [p.name, p.platform, p.handle].some(v => (v||'').toLowerCase().includes(q));
+      });
+
+    els.countPill.textContent = `${filtered.length} of ${active.length} entr${active.length===1?'y':'ies'}`;
+
+    if(!active.length){
+      els.entries.innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin:0 auto;display:block;"><path d="M12 21C12 21 4 15.5 4 9.5C4 6.5 6.3 4.5 9 4.5C10.5 4.5 11.5 5.2 12 6C12.5 5.2 13.5 4.5 15 4.5C17.7 4.5 20 6.5 20 9.5C20 15.5 12 21 12 21Z" stroke="currentColor" stroke-width="1.6"/></svg>
+          <p><strong>No entries yet.</strong></p>
+          <p>Add your first record to start your private log.</p>
+        </div>`;
+      return;
+    }
+    if(!filtered.length){
+      els.entries.innerHTML = `<div class="empty-state"><p>No entries match your search.</p></div>`;
+      return;
+    }
+
+    els.entries.innerHTML = filtered.map(e => cardHtml(e)).join('');
+
+    // wire up interactions
+    filtered.forEach(e => {
+      const card = document.getElementById('card-' + e.id);
+      if(!card) return;
+      card.querySelector('.card-head').addEventListener('click', () => card.classList.toggle('open'));
+      const editBtn = card.querySelector('.edit-btn');
+      const delBtn = card.querySelector('.del-btn');
+      if(editBtn) editBtn.addEventListener('click', ev => { ev.stopPropagation(); requestOpenModal(e.id); });
+      if(delBtn) delBtn.addEventListener('click', ev => {
+        ev.stopPropagation();
+        e.deletedAt = new Date().toISOString();
+        save(); render();
+        showToast(`Entry moved to Deleted — kept ${DELETE_RETENTION_DAYS} days, then removed automatically`);
+      });
+    });
+  }
+
+  function entryHasActs(e){
+    const acts = ['kissing','oralGive','oralReceive','analGive','analReceive','rimGive','rimReceive','vagGive','vagReceive'];
+    return acts.some(a => e[a]);
+  }
+
+  function chip(label, on){
+    return `<span class="chip ${on?'yes':''}">${label}${on ? ' ✓' : ''}</span>`;
+  }
+
+  function sectionHtml(title, chips, anyOn){
+    if(!chips.some(c => c.on) && !anyOn) return ''; // omit empty sections in the read view for tidiness
+    return `
+      <div class="act-section">
+        <div class="act-title">${title}</div>
+        <div class="act-row">${chips.map(c => chip(c.label, c.on)).join('')}</div>
+      </div>`;
+  }
+
+  function cardHtml(e){
+    const p = getPartner(e.partnerId) || {};
+    const metaParts = [p.platform, p.handle, ageDisplay(e) ? `Age ${ageDisplay(e)}` : null].filter(Boolean);
+    const anatomyBits = [];
+    if(p.partnerPenis) anatomyBits.push('partner: penis');
+    if(p.partnerVagina) anatomyBits.push('partner: vagina');
+    if(p.partnerUnknown) anatomyBits.push('partner: unknown');
+    const incomplete = !entryHasActs(e);
+
+    return `
+    <div class="card ${incomplete ? 'card-incomplete' : ''}" id="card-${e.id}">
+      <div class="card-head">
+        <span class="card-id">${esc(p.uuid || '—')}</span>
+        <div class="card-main">
+          <span class="card-name">${esc(p.name) || esc(p.uuid)}</span>
+          ${metaParts.length ? `<span class="card-meta">${metaParts.map(esc).join(' · ')}</span>` : ''}
+        </div>
+        ${incomplete ? '<span class="incomplete-badge">Needs info</span>' : ''}
+        <span class="card-date">${fmtDate(e.date)}</span>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          ${incomplete ? `<div class="incomplete-notice">No activity recorded for this entry yet — tap Edit below to fill it in.</div>` : ''}
+          <div class="detail-grid">
+            <div class="field"><label>Date</label><span class="val ${!e.date?'empty':''}">${e.date ? fmtDate(e.date) : '—'}</span></div>
+            <div class="field"><label>Age</label><span class="val ${!ageDisplay(e)?'empty':''}">${esc(ageDisplay(e)) || '—'}</span></div>
+            <div class="field"><label>Platform</label><span class="val ${!p.platform?'empty':''}">${esc(p.platform) || '—'}</span></div>
+            <div class="field"><label>Username / Number</label><span class="val ${!p.handle?'empty':''}">${esc(p.handle) || '—'}</span></div>
+            <div class="field"><label>Contact confirmed</label><span class="val">${p.contact ? 'Yes' : 'No'}</span></div>
+            <div class="field"><label>Partner anatomy</label><span class="val ${!anatomyBits.length?'empty':''}">${anatomyBits.join(', ') || '—'}</span></div>
+            <div class="field"><label>Record ID</label><span class="val">${esc(p.uuid || '—')}</span></div>
+          </div>
+
+          ${sectionHtml('Kissing', [
+            {label:'Kissing', on:e.kissing}
+          ])}
+          ${sectionHtml('Oral — I gave', [
+            {label:'I gave oral', on:e.oralGive}, {label:'Barrier used', on:e.oralGiveBarrier}, {label:'Partner finished', on:e.oralGiveFinish}, {label:'I swallowed', on:e.oralGiveSwallow}
+          ])}
+          ${sectionHtml('Oral — I received', [
+            {label:'I received oral', on:e.oralReceive}, {label:'Barrier used', on:e.oralReceiveBarrier}, {label:'I finished', on:e.oralReceiveFinish}, {label:'Partner swallowed', on:e.oralReceiveSwallow}
+          ])}
+          ${sectionHtml('Anal — Insertive', [
+            {label:'Insertive', on:e.analGive}, {label:'Condom used', on:e.analGiveCondom}, {label:'I finished', on:e.analGiveFinish}
+          ])}
+          ${sectionHtml('Anal — Receptive', [
+            {label:'Receptive', on:e.analReceive}, {label:'Condom used', on:e.analReceiveCondom}, {label:'Partner finished', on:e.analReceiveFinish}
+          ])}
+          ${sectionHtml('Rimming — I performed', [
+            {label:'I performed', on:e.rimGive}, {label:'Barrier used', on:e.rimGiveBarrier}
+          ])}
+          ${sectionHtml('Rimming — I received', [
+            {label:'I received', on:e.rimReceive}, {label:'Barrier used', on:e.rimReceiveBarrier}
+          ])}
+          ${sectionHtml('Vaginal — Insertive', [
+            {label:'Insertive', on:e.vagGive}, {label:'Condom used', on:e.vagCondom}, {label:'I finished', on:e.vagFinish}
+          ])}
+          ${sectionHtml('Vaginal — Receptive', [
+            {label:'Receptive', on:e.vagReceive}, {label:'Condom used', on:e.vagReceiveCondom}, {label:'Partner finished', on:e.vagReceiveFinish}
+          ])}
+
+          ${e.notes ? `<div class="act-section"><div class="notes-label">Notes</div><div class="notes-block">${esc(e.notes)}</div></div>` : ''}
+
+          <div class="card-controls">
+            <button class="icon-btn edit-btn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Edit
+            </button>
+            <button class="icon-btn danger del-btn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0l-1 14a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ---------- modal ----------
+  let pendingEntryId = undefined;
+
+  function requestOpenModal(id){
+    if(!settings.configured){
+      pendingEntryId = id;
+      openSetup();
+      showToast('Please set up your profile first');
+      return;
+    }
+    openModal(id);
+  }
+
+  function openModal(id){
+    editingId = id || null;
+    els.modalTitle.textContent = editingId ? 'Edit Entry' : 'New Entry';
+    els.entryForm.reset();
+    setAgeLocked(false);
+    setAgeType('exact');
+    populatePartnerSelect('');
+    document.getElementById('f_date').max = todayISO();
+
+    if(editingId){
+      const e = entries.find(x => x.id === editingId);
+      if(e){
+        document.getElementById('f_age').value = e.age || '';
+        document.getElementById('f_date').value = e.date || '';
+        document.getElementById('f_notes').value = e.notes || '';
+        setAgeType(e.ageType || 'exact');
+        populatePartnerSelect(e.partnerId || '');
+        CHECK_FIELDS.forEach(f => {
+          const el = document.getElementById('f_' + f);
+          if(el) el.checked = !!e[f];
+        });
+      }
+    }else{
+      document.getElementById('f_date').value = todayISO();
+    }
+
+    updateSectionVisibility();
+    updateAllChains();
+    els.modalBackdrop.classList.add('show');
+    setTimeout(() => els.partnerSelect.focus(), 50);
+  }
+  function closeModal(){
+    els.modalBackdrop.classList.remove('show');
+    editingId = null;
+  }
+
+  els.addBtn.addEventListener('click', () => requestOpenModal(null));
+  els.cancelBtn.addEventListener('click', closeModal);
+  els.modalBackdrop.addEventListener('click', ev => { if(ev.target === els.modalBackdrop) closeModal(); });
+  document.addEventListener('keydown', ev => {
+    if(ev.key === 'Escape'){
+      if(confirmBackdrop.classList.contains('show')) resolveConfirm(false);
+      else if(document.getElementById('deleteAllBackdrop').classList.contains('show')) closeDeleteAll();
+      else if(els.partnerEditorBackdrop.classList.contains('show')) closePartnerEditor();
+      else if(els.testEditorBackdrop.classList.contains('show')) closeTestEditor();
+      else if(els.partnersListBackdrop.classList.contains('show')) closePartnersList();
+      else if(els.testingListBackdrop.classList.contains('show')) closeTestingList();
+      else if(els.deletedBackdrop.classList.contains('show')) closeDeletedModal();
+      else if(els.modalBackdrop.classList.contains('show')) closeModal();
+      if(els.setupBackdrop.classList.contains('show') && settings.configured) closeSetup();
+      if(els.exportBackdrop.classList.contains('show')) closeExportModal();
+    }
+  });
+
+  els.entryForm.addEventListener('submit', ev => {
+    ev.preventDefault();
+    const partnerId = els.partnerSelect.value;
+    if(!partnerId){
+      showToast('Select or add a partner first');
+      return;
+    }
+    const dateVal = document.getElementById('f_date').value;
+    if(!dateVal){
+      showToast('Pick a date for this entry');
+      return;
+    }
+    if(dateVal > todayISO()){
+      showToast("Date can't be in the future");
+      return;
+    }
+    const data = {
+      partnerId,
+      age: document.getElementById('f_age').value.trim(),
+      ageType: ageType,
+      date: dateVal,
+      notes: document.getElementById('f_notes').value.trim(),
+    };
+    CHECK_FIELDS.forEach(f => {
+      const el = document.getElementById('f_' + f);
+      if(el) data[f] = el.checked;
+    });
+
+    if(editingId){
+      const idx = entries.findIndex(x => x.id === editingId);
+      if(idx > -1) entries[idx] = { ...entries[idx], ...data };
+      showToast('Entry updated');
+    }else{
+      data.id = 'e_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+      entries.push(data);
+      showToast('Entry added');
+    }
+    save();
+
+    const p = getPartner(partnerId);
+    if(p && !p.dob && data.age){
+      p.lastAge = data.age;
+      p.lastAgeType = data.ageType;
+      savePartners();
+    }
+
+    closeModal();
+    render();
+  });
+
+  // ---------- search ----------
+  els.searchInput.addEventListener('input', render);
+
+  function triLabel(v){ return v === 'yes' ? 'Yes' : v === 'no' ? 'No' : 'Unknown'; }
+  function profileSummaryLines(){
+    const vax = settings.vaccines || [];
+    const latestTest = tests.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
+    return [
+      ['Anatomy', [settings.penis?'Penis':null, settings.vagina?'Vagina':null].filter(Boolean).join(' + ') || 'Not specified'],
+      ['Gender identity', settings.genderIdentity || 'Not specified'],
+      ['Last STI test', latestTest ? fmtDate(latestTest.date) : 'Not specified'],
+      ['On PrEP', triLabel(settings.prep)],
+      ['On PEP', triLabel(settings.pep)],
+      ['Vaccinations', vax.length ? vax.join(', ') : 'None recorded'],
+      ['Known allergies', settings.allergies || 'None recorded'],
+    ];
+  }
+
+  // ---------- shared report data model (used by both PDF and Image exports) ----------
+  function summarizeActs(e){
+    const cats = [];
+    if(e.kissing) cats.push('Kissing');
+
+    const oralG = []; if(e.oralGive){ oralG.push('gave oral'); if(e.oralGiveBarrier) oralG.push('barrier used'); if(e.oralGiveFinish) oralG.push('partner finished'); if(e.oralGiveSwallow) oralG.push('I swallowed'); }
+    const oralR = []; if(e.oralReceive){ oralR.push('received oral'); if(e.oralReceiveBarrier) oralR.push('barrier used'); if(e.oralReceiveFinish) oralR.push('I finished'); if(e.oralReceiveSwallow) oralR.push('partner swallowed'); }
+    if(oralG.length || oralR.length) cats.push('Oral — ' + [oralG.join(', '), oralR.join(', ')].filter(Boolean).join('; '));
+
+    const analG = []; if(e.analGive){ analG.push('insertive'); if(e.analGiveCondom) analG.push('condom used'); if(e.analGiveFinish) analG.push('I finished'); }
+    const analR = []; if(e.analReceive){ analR.push('receptive'); if(e.analReceiveCondom) analR.push('condom used'); if(e.analReceiveFinish) analR.push('partner finished'); }
+    if(analG.length || analR.length) cats.push('Anal — ' + [analG.join(', '), analR.join(', ')].filter(Boolean).join('; '));
+
+    const rimG = []; if(e.rimGive){ rimG.push('performed'); if(e.rimGiveBarrier) rimG.push('barrier used'); }
+    const rimR = []; if(e.rimReceive){ rimR.push('received'); if(e.rimReceiveBarrier) rimR.push('barrier used'); }
+    if(rimG.length || rimR.length) cats.push('Rimming — ' + [rimG.join(', '), rimR.join(', ')].filter(Boolean).join('; '));
+
+    const vagG = []; if(e.vagGive){ vagG.push('insertive'); if(e.vagCondom) vagG.push('condom used'); if(e.vagFinish) vagG.push('I finished'); }
+    const vagR = []; if(e.vagReceive){ vagR.push('receptive'); if(e.vagReceiveCondom) vagR.push('condom used'); if(e.vagReceiveFinish) vagR.push('partner finished'); }
+    if(vagG.length || vagR.length) cats.push('Vaginal — ' + [vagG.join(', '), vagR.join(', ')].filter(Boolean).join('; '));
+
+    return cats.length ? cats : ['No acts recorded'];
+  }
+  function buildReportData(mode, entryList){
+    let rows = entryList.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(e => {
+      const p = getPartner(e.partnerId) || {};
+      const anatomy = p.partnerUnknown ? 'Unknown' : ([p.partnerPenis?'Penis':null, p.partnerVagina?'Vagina':null].filter(Boolean).join(' + ') || 'Not specified');
+      const acts = summarizeActs(e);
+      return {
+        uuid: p.uuid || '—',
+        name: mode === 'backup' ? (p.name || p.uuid) : null,
+        platform: mode === 'backup' ? (p.platform || '') : null,
+        handle: mode === 'backup' ? (p.handle || '') : null,
+        date: e.date ? fmtDate(e.date) : 'No date',
+        age: (e.ageType === 'unknown' || !ageDisplay(e)) ? 'Not specified' : ageDisplay(e),
+        contact: p.contact ? 'Yes' : 'No',
+        anatomy,
+        genderIdentity: p.genderIdentity || '',
+        acts,
+        hasActs: !(acts.length === 1 && acts[0] === 'No acts recorded'),
+        notes: e.notes || '',
+      };
+    });
+    if(mode === 'doctor'){
+      rows = rows.filter(r => r.hasActs);
+    }
+    return {
+      title: mode === 'doctor' ? 'Anonymized Sexual Health Log' : 'Sexual Health Log — Full Backup',
+      subtitle: mode === 'doctor' ? 'Names, platforms, and usernames are intentionally excluded.' : 'Includes identifying info — for personal records only.',
+      generated: new Date().toLocaleDateString(undefined, { year:'numeric', month:'long', day:'numeric' }) + ' at ' + new Date().toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' }),
+      profile: profileSummaryLines(),
+      rows,
+    };
+  }
+
+  // ---------- Image export (Canvas API — built into every browser, fully local) ----------
+  function wrapCanvasText(ctx, text, maxWidth){
+    const words = String(text).split(' ');
+    const lines = [];
+    let current = '';
+    words.forEach(word => {
+      const test = current ? current + ' ' + word : word;
+      if(ctx.measureText(test).width > maxWidth && current){
+        lines.push(current);
+        current = word;
+      }else{
+        current = test;
+      }
+    });
+    if(current) lines.push(current);
+    return lines;
+  }
+  function renderImageReport(data, filename, suppressToast){
+    const W = 860;
+    const MARGIN = 48;
+    const CW = W - MARGIN*2;
+    const COL = { bg:'#F6F8F7', card:'#FFFFFF', line:'#D9E2DF', ink:'#1E2A28', soft:'#5B6B67', accent:'#1E5D53', accentBg:'#E3EFEC' };
+
+    const measureCanvas = document.createElement('canvas');
+    const mctx = measureCanvas.getContext('2d');
+    function font(size, weight){ return `${weight||400} ${size}px -apple-system, "Helvetica Neue", Arial, sans-serif`; }
+
+    // ---- Layout pass: build a list of draw ops, tracking y as we go ----
+    let y = 0;
+    const ops = [];
+    function measureLines(text, size, weight, maxWidth){
+      mctx.font = font(size, weight);
+      return wrapCanvasText(mctx, text, maxWidth || CW);
+    }
+    function pushText(text, size, weight, color, x, maxWidth){
+      const lines = measureLines(text, size, weight, maxWidth);
+      const lh = Math.round(size * 1.45);
+      lines.forEach(line => {
+        ops.push({ type:'text', text: line, x: x!==undefined?x:MARGIN, y, size, weight, color, font: font(size, weight) });
+        y += lh;
+      });
+      return lines.length * lh;
+    }
+    function pushRect(x, w, h, fill, stroke, radius){
+      ops.push({ type:'rect', x, y: y, w, h, fill, stroke, radius: radius||0 });
+    }
+    function pushLine(){
+      ops.push({ type:'hr', x: MARGIN, y, w: CW, color: COL.line });
+      y += 1;
+    }
+
+    y = MARGIN;
+    pushText(data.title, 22, 700, COL.accent);
+    pushText('Generated ' + data.generated, 11, 400, COL.soft);
+    y += 14;
+
+    // Profile summary card
+    {
+      const startY = y;
+      const innerPad = 16;
+      y = y + innerPad;
+      pushText('PROFILE SUMMARY', 10.5, 700, COL.accent, MARGIN + innerPad, CW - innerPad*2);
+      y += 2;
+      data.profile.forEach(([k,v]) => { pushText(`${k}:  ${v}`, 11.5, 400, COL.ink, MARGIN + innerPad, CW - innerPad*2); });
+      y += innerPad - 6;
+      const cardH = y - startY;
+      ops.splice(ops.findIndex(o => o.y >= startY), 0, { type:'rect', x: MARGIN, y: startY, w: CW, h: cardH, fill: COL.accentBg, radius: 10 });
+      y = startY + cardH + 20;
+    }
+
+    // Entries
+    data.rows.forEach((row, idx) => {
+      const cardStartY = y;
+      const innerPad = 16;
+      y += innerPad;
+      const headerBits = [row.uuid, row.name, row.date, 'Age ' + row.age].filter(Boolean);
+      pushText(headerBits.join('   •   '), 13, 700, COL.accent, MARGIN + innerPad, CW - innerPad*2);
+      if(row.platform || row.handle){
+        pushText([row.platform, row.handle].filter(Boolean).join(' · '), 10.5, 400, COL.soft, MARGIN + innerPad, CW - innerPad*2);
+      }
+      pushText(`Contactable: ${row.contact}    Partner anatomy: ${row.anatomy}${row.genderIdentity ? '    Gender identity: ' + row.genderIdentity : ''}`, 10.5, 400, COL.soft, MARGIN + innerPad, CW - innerPad*2);
+      y += 4;
+      row.acts.forEach(a => { pushText(a, 11, 400, COL.ink, MARGIN + innerPad, CW - innerPad*2); });
+      if(row.notes){
+        y += 2;
+        pushText('Notes: ' + row.notes, 10.5, 400, COL.soft, MARGIN + innerPad, CW - innerPad*2);
+      }
+      y += innerPad - 4;
+      const cardH = y - cardStartY;
+      const insertIdx = ops.findIndex(o => o.y >= cardStartY);
+      ops.splice(insertIdx, 0, { type:'rect', x: MARGIN, y: cardStartY, w: CW, h: cardH, fill: COL.card, stroke: COL.line, radius: 10 });
+      y = cardStartY + cardH + 14;
+    });
+
+    y += 20;
+    pushText('This export was generated completely on your device — never uploaded, synced, or shared automatically.', 9.5, 400, COL.soft);
+    y += MARGIN;
+
+    // ---- Draw pass ----
+    const DPR = Math.max(2, window.devicePixelRatio || 1);
+    const H = Math.ceil(y);
+    const canvas = document.createElement('canvas');
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(DPR, DPR);
+    ctx.fillStyle = COL.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    function roundRect(ctx, x, yy, w, h, r){
+      ctx.beginPath();
+      ctx.moveTo(x+r, yy);
+      ctx.arcTo(x+w, yy, x+w, yy+h, r);
+      ctx.arcTo(x+w, yy+h, x, yy+h, r);
+      ctx.arcTo(x, yy+h, x, yy, r);
+      ctx.arcTo(x, yy, x+w, yy, r);
+      ctx.closePath();
+    }
+
+    ops.forEach(op => {
+      if(op.type === 'rect'){
+        roundRect(ctx, op.x, op.y, op.w, op.h, op.radius);
+        ctx.fillStyle = op.fill;
+        ctx.fill();
+        if(op.stroke){ ctx.strokeStyle = op.stroke; ctx.lineWidth = 1; ctx.stroke(); }
+      }else if(op.type === 'hr'){
+        ctx.strokeStyle = op.color; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(op.x, op.y); ctx.lineTo(op.x+op.w, op.y); ctx.stroke();
+      }else if(op.type === 'text'){
+        ctx.font = op.font;
+        ctx.fillStyle = op.color;
+        ctx.textBaseline = 'top';
+        ctx.fillText(op.text, op.x, op.y);
+      }
+    });
+
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      if(!suppressToast) showToast('Image exported');
+    }, 'image/png');
+  }
+
+  // ---------- PDF export (jsPDF loaded on demand; falls back to image if unavailable) ----------
+  function loadJsPDF(){
+    return new Promise((resolve, reject) => {
+      if(window.jspdf && window.jspdf.jsPDF){ resolve(window.jspdf.jsPDF); return; }
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.onload = () => {
+        if(window.jspdf && window.jspdf.jsPDF) resolve(window.jspdf.jsPDF);
+        else reject(new Error('jsPDF failed to initialize'));
+      };
+      script.onerror = () => reject(new Error('jsPDF failed to load'));
+      document.head.appendChild(script);
+      setTimeout(() => reject(new Error('jsPDF load timed out')), 6000);
+    });
+  }
+  async function renderPdfReport(data, filename){
+    let JsPDFCtor;
+    try{
+      JsPDFCtor = await loadJsPDF();
+    }catch(err){
+      showToast("Couldn't reach the PDF generator — exported as an image instead");
+      renderImageReport(data, filename.replace(/\.pdf$/i, '.png'), true);
+      return;
+    }
+    const doc = new JsPDFCtor({ unit: 'pt', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 42;
+    const cw = pageW - margin*2;
+    let y = margin;
+
+    function ensureSpace(h){
+      if(y + h > pageH - margin){ doc.addPage(); y = margin; }
+    }
+    function text(str, size, style, color){
+      doc.setFont('helvetica', style || 'normal');
+      doc.setFontSize(size);
+      doc.setTextColor(color || '#1a1a1a');
+      const lines = doc.splitTextToSize(str, cw);
+      lines.forEach(line => {
+        ensureSpace(size * 1.5);
+        doc.text(line, margin, y);
+        y += size * 1.4;
+      });
+    }
+
+    text(data.title, 18, 'bold', '#1E5D53');
+    text('Generated ' + data.generated, 10, 'normal', '#666666');
+    y += 8;
+    text('PROFILE SUMMARY', 12, 'bold', '#1E5D53');
+    data.profile.forEach(([k,v]) => text(`${k}: ${v}`, 10.5, 'normal', '#333333'));
+    y += 10;
+
+    data.rows.forEach(row => {
+      ensureSpace(50);
+      doc.setDrawColor('#cccccc');
+      doc.line(margin, y, pageW - margin, y);
+      y += 14;
+      const headerBits = [row.uuid, row.name, row.date, 'Age ' + row.age].filter(Boolean);
+      text(headerBits.join('   •   '), 12.5, 'bold', '#1E5D53');
+      if(row.platform || row.handle) text([row.platform, row.handle].filter(Boolean).join(' · '), 10, 'normal', '#555555');
+      text(`Contactable: ${row.contact}    Partner anatomy: ${row.anatomy}${row.genderIdentity ? '    Gender identity: ' + row.genderIdentity : ''}`, 10, 'normal', '#555555');
+      y += 2;
+      row.acts.forEach(a => text(a, 10.5, 'normal', '#222222'));
+      if(row.notes) text('Notes: ' + row.notes, 10, 'italic', '#555555');
+      y += 8;
+    });
+
+    y += 8;
+    text('This export was generated completely on your device — never uploaded, synced, or shared automatically.', 9, 'italic', '#777777');
+
+    doc.save(filename);
+    showToast('PDF exported');
+  }
+
+  // ---------- export flow wiring (shared modal, two modes, two formats) ----------
+  let exportMode = 'doctor';
+  function todayISO(){ return new Date().toISOString().slice(0,10); }
+  function fileTimestamp(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+  }
+  function monthsAgoISO(n){
+    const d = new Date();
+    d.setMonth(d.getMonth() - n);
+    return d.toISOString().slice(0,10);
+  }
+  function currentRangeMode(){
+    const checked = document.querySelector('input[name="exportRange"]:checked');
+    return checked ? checked.value : '3m';
+  }
+  function updateExportRangeUI(){
+    if(exportMode === 'backup'){
+      const summaryEl = document.getElementById('exportRangeSummary');
+      const n = activeEntries().length;
+      summaryEl.textContent = `${n} entr${n===1?'y':'ies'} will be included.`;
+      return { from: null, to: null };
+    }
+    const mode = currentRangeMode();
+    document.getElementById('customRangeFields').classList.toggle('open', mode === 'custom');
+    let from = null, to = null;
+    if(mode === '3m'){ from = monthsAgoISO(3); to = todayISO(); }
+    else if(mode === '6m'){ from = monthsAgoISO(6); to = todayISO(); }
+    else if(mode === 'all'){ from = null; to = null; }
+    else if(mode === 'custom'){
+      from = document.getElementById('exportRangeFrom').value || null;
+      to = document.getElementById('exportRangeTo').value || null;
+    }
+    const active = activeEntries();
+    const inRange = active.filter(e => (!from || (e.date && e.date >= from)) && (!to || (e.date && e.date <= to)));
+    const summaryEl = document.getElementById('exportRangeSummary');
+    if(mode === 'all'){
+      summaryEl.textContent = `${active.length} entr${active.length===1?'y':'ies'} will be included.`;
+    }else if(!from && !to){
+      summaryEl.textContent = 'Choose a start and/or end date.';
+    }else{
+      summaryEl.textContent = `${inRange.length} of ${active.length} entries fall in this range.`;
+    }
+    return { from, to };
+  }
+  document.querySelectorAll('input[name="exportRange"]').forEach(r => r.addEventListener('change', updateExportRangeUI));
+  document.getElementById('exportRangeFrom').addEventListener('change', updateExportRangeUI);
+  document.getElementById('exportRangeTo').addEventListener('change', updateExportRangeUI);
+
+  function getExportEntries(){
+    if(exportMode === 'backup') return activeEntries();
+    const mode = currentRangeMode();
+    const { from, to } = updateExportRangeUI();
+    if(mode === 'custom' && !from && !to) return null; // signal: need a date
+    return activeEntries().filter(e => (!from || (e.date && e.date >= from)) && (!to || (e.date && e.date <= to)));
+  }
+
+  function openExportModal(mode){
+    if(!activeEntries().length){ showToast('Nothing to export yet'); return; }
+    exportMode = mode;
+    const isDoctor = mode === 'doctor';
+    document.getElementById('exportModalTitle').textContent = isDoctor ? 'Anonymized Export' : 'Full Backup';
+    document.getElementById('exportModalSub').textContent = isDoctor
+      ? "Export your data to share with medical professionals. This anonymized report does not include names, platforms, or usernames — just record IDs, dates, contactability, and activity history."
+      : 'Includes names, platforms, and usernames — for your own records only.';
+    document.getElementById('exportRangeBox').style.display = isDoctor ? '' : 'none';
+    document.querySelector('input[name="exportRange"][value="3m"]').checked = true;
+    document.getElementById('exportRangeFrom').value = '';
+    document.getElementById('exportRangeTo').value = '';
+    updateExportRangeUI();
+    els.exportBackdrop.classList.add('show');
+  }
+  function closeExportModal(){ els.exportBackdrop.classList.remove('show'); }
+
+  els.exportDoctorBtn.addEventListener('click', () => openExportModal('doctor'));
+  document.getElementById('exportCancelBtn').addEventListener('click', closeExportModal);
+  els.exportBackdrop.addEventListener('click', ev => { if(ev.target === els.exportBackdrop) closeExportModal(); });
+
+  function runExport(format){
+    const filtered = getExportEntries();
+    if(filtered === null){ showToast('Pick at least a start or end date'); return; }
+    if(!filtered.length){ showToast('No entries fall in that range'); return; }
+    const data = buildReportData(exportMode, filtered);
+    if(!data.rows.length){ showToast('No entries with recorded activity in that range'); return; }
+    const stamp = fileTimestamp();
+    const baseName = exportMode === 'doctor' ? `anonymized-export-${stamp}` : `contact-log-full-backup-${stamp}`;
+    if(format === 'pdf'){
+      renderPdfReport(data, baseName + '.pdf');
+    }else{
+      renderImageReport(data, baseName + '.png');
+    }
+    closeExportModal();
+  }
+  document.getElementById('exportPdfBtn').addEventListener('click', () => runExport('pdf'));
+  document.getElementById('exportImageBtn').addEventListener('click', () => runExport('image'));
+
   load();
-  if(!settings.configured) {
+  if(!settings.configured){
     openSetup();
   }
+  render();
 })();
 </script>
+
 </body>
 </html>
