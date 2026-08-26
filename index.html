@@ -933,7 +933,7 @@
     </button>
     <button class="chip-btn" id="exportDoctorBtn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12h6M9 16h6M9 8h1M13 3H8a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2V8l-5-5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Anonymized Export</span>
+      <span>Export</span>
     </button>
     <button class="chip-btn" id="deletedBtn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0l-1 14a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1061,11 +1061,11 @@
         <div class="tutorial-mockup">
           <button type="button" class="chip-btn" tabindex="-1">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12h6M9 16h6M9 8h1M13 3H8a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2V8l-5-5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Anonymized Export</span>
+            <span>Export</span>
           </button>
         </div>
         <h3>Export How You Need</h3>
-        <p>Share an anonymized report with a doctor, keep a full backup for yourself, or export just a search result or a single partner's history - from that partner's own entry, or your search results, any time.</p>
+        <p>Anonymized is selected by default - ready to share with a doctor. Switch to Full for a complete record with names and usernames included, and narrow to just a search result or a single partner's history any time.</p>
       </div>
       <div class="tutorial-step" data-step="6" style="display:none;">
         <div class="tutorial-mockup">
@@ -1191,10 +1191,6 @@
     <div class="anatomy-box">
       <div class="anatomy-label">Data &amp; Backup</div>
       <div class="range-options">
-        <button type="button" class="chip-btn data-action-btn" id="fullBackupReportBtn" style="width:100%; justify-content:center;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span>Full Backup Report (PDF/Image)</span>
-        </button>
         <button type="button" class="chip-btn data-action-btn" id="exportJsonBtn" style="width:100%; justify-content:center;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span>Export Data (.json)</span>
@@ -1205,7 +1201,7 @@
         </button>
         <input type="file" id="importJsonInput" accept="application/json" style="display:none;">
       </div>
-      <div class="modal-sub" style="margin:8px 0 0;">The JSON export/import is a raw data backup - for the human-readable report, use Full Backup or Anonymized Export from the toolbar.</div>
+      <div class="modal-sub" style="margin:8px 0 0;">This JSON export/import is a raw data backup - for a human-readable report, use Export from the toolbar.</div>
     </div>
 
     <div class="anatomy-box">
@@ -2058,12 +2054,7 @@
     if(ev.target === els.setupBackdrop && settings.configured) closeSetup();
   });
 
-  // ---------- settings: full backup report, JSON export/import ----------
-  document.getElementById('fullBackupReportBtn').addEventListener('click', () => {
-    closeSettings();
-    openExportModal('backup', { mode: 'all' }, true);
-  });
-
+  // ---------- settings: JSON export/import ----------
   document.getElementById('exportJsonBtn').addEventListener('click', () => {
     const payload = {
       exportedAt: new Date().toISOString(),
