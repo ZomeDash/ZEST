@@ -3406,13 +3406,13 @@
     // Partner ID explainer note
     {
       const startY = y;
-      const innerPad = 14;
+      const innerPad = 12;
       y = y + innerPad;
       pushText(data.idNote, 10, 400, COL.accent, MARGIN + innerPad, CW - innerPad*2);
-      y += innerPad - 6;
+      y += innerPad - 9;
       const noteH = y - startY;
       ops.splice(ops.findIndex(o => o.y >= startY), 0, { type:'rect', x: MARGIN, y: startY, w: CW, h: noteH, fill: COL.accentBg, radius: 8 });
-      y = startY + noteH + 20;
+      y = startY + noteH + 24;
     }
 
     // Profile summary card
@@ -3575,12 +3575,14 @@
       const innerPad = 10;
       doc.setDrawColor('#D9E2DF');
       doc.setFillColor('#E3EFEC');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
       const noteLines = doc.splitTextToSize(data.idNote, cw - innerPad*2);
       const noteH = innerPad*2 + noteLines.length * (9 * 1.4);
       doc.roundedRect(margin, startY, cw, noteH, 4, 4, 'F');
       y = startY + innerPad;
       text(data.idNote, 9, 'normal', '#1E5D53', margin + innerPad, cw - innerPad*2, 'top');
-      y = startY + noteH + 12;
+      y = startY + noteH + 16;
     }
     text('PROFILE SUMMARY', 12, 'bold', '#1E5D53');
     data.profile.forEach(([k,v]) => text(`${k}: ${v}`, 10.5, 'normal', '#333333'));
