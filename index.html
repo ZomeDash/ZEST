@@ -1406,6 +1406,7 @@
           <span>Export as Image</span>
         </button>
       </div>
+      <div class="modal-sub" style="margin:8px 0 0;">Long exports are split into multiple numbered images (1/3, 2/3, etc.) instead of one very tall picture - each one repeats the header so it still makes sense on its own.</div>
     </div>
 
     <div class="modal-footer">
@@ -2057,6 +2058,7 @@
   // ---------- settings: JSON export/import ----------
   document.getElementById('exportJsonBtn').addEventListener('click', () => {
     const payload = {
+      exportedFrom: 'zest.gay',
       exportedAt: new Date().toISOString(),
       version: 2,
       entries,
@@ -3357,6 +3359,7 @@
     return lines;
   }
   async function renderImageReport(data, filename, suppressToast){
+    const ENTRIES_PER_IMAGE = 5;
     const W = 860;
     const MARGIN = 48;
     const CW = W - MARGIN*2;
@@ -3366,111 +3369,14 @@
     const mctx = measureCanvas.getContext('2d');
     function font(size, weight){ return `${weight||400} ${size}px -apple-system, "Helvetica Neue", Arial, sans-serif`; }
 
-    // ---- Layout pass: build a list of draw ops, tracking y as we go ----
-    let y = 0;
-    const ops = [];
-    function measureLines(text, size, weight, maxWidth){
-      mctx.font = font(size, weight);
-      return wrapCanvasText(mctx, text, maxWidth || CW);
+    const rowChunks = [];
+    for(let i = 0; i < data.rows.length; i += ENTRIES_PER_IMAGE){
+      rowChunks.push(data.rows.slice(i, i + ENTRIES_PER_IMAGE));
     }
-    function pushText(text, size, weight, color, x, maxWidth){
-      const lines = measureLines(text, size, weight, maxWidth);
-      const lh = Math.round(size * 1.45);
-      lines.forEach(line => {
-        ops.push({ type:'text', text: line, x: x!==undefined?x:MARGIN, y, size, weight, color, font: font(size, weight) });
-        y += lh;
-      });
-      return lines.length * lh;
-    }
-    function pushRect(x, w, h, fill, stroke, radius){
-      ops.push({ type:'rect', x, y: y, w, h, fill, stroke, radius: radius||0 });
-    }
-    function pushLine(){
-      ops.push({ type:'hr', x: MARGIN, y, w: CW, color: COL.line });
-      y += 1;
-    }
+    if(!rowChunks.length) rowChunks.push([]);
+    const totalPages = rowChunks.length;
 
-    y = MARGIN;
-    {
-      const headerTop = y;
-      const iconSize = 44;
-      const textX = MARGIN + iconSize + 14;
-      const textMaxWidth = CW - iconSize - 14;
-      ops.push({ type:'image', x: MARGIN, y: headerTop, w: iconSize, h: iconSize });
-      y = headerTop + 3;
-      pushText(data.title, 20, 800, COL.ink, textX, textMaxWidth);
-      pushText('Generated ' + data.generated, 11, 400, COL.soft, textX, textMaxWidth);
-      y = Math.max(y, headerTop + iconSize) + 14;
-    }
-
-    // Partner ID explainer note
-    {
-      const startY = y;
-      const innerPad = 12;
-      y = y + innerPad;
-      pushText(data.idNote, 10, 400, COL.accent, MARGIN + innerPad, CW - innerPad*2);
-      y += innerPad - 9;
-      const noteH = y - startY;
-      ops.splice(ops.findIndex(o => o.y >= startY), 0, { type:'rect', x: MARGIN, y: startY, w: CW, h: noteH, fill: COL.accentBg, radius: 8 });
-      y = startY + noteH + 24;
-    }
-
-    // Profile summary card
-    {
-      const startY = y;
-      const innerPad = 16;
-      y = y + innerPad;
-      pushText('PROFILE SUMMARY', 10.5, 700, COL.accent, MARGIN + innerPad, CW - innerPad*2);
-      y += 2;
-      data.profile.forEach(([k,v]) => { pushText(`${k}:  ${v}`, 11.5, 400, COL.ink, MARGIN + innerPad, CW - innerPad*2); });
-      y += innerPad - 6;
-      const cardH = y - startY;
-      ops.splice(ops.findIndex(o => o.y >= startY), 0, { type:'rect', x: MARGIN, y: startY, w: CW, h: cardH, fill: COL.accentBg, radius: 10 });
-      y = startY + cardH + 20;
-    }
-
-    // Entries
-    data.rows.forEach((row, idx) => {
-      const cardStartY = y;
-      const innerPad = 16;
-      y += innerPad;
-      const headerBits = [row.uuid, row.name, row.date, 'Age ' + row.age].filter(Boolean);
-      pushText(headerBits.join('   •   '), 13, 700, COL.accent, MARGIN + innerPad, CW - innerPad*2);
-      if(row.platform || row.handle){
-        pushText([row.platform, row.handle].filter(Boolean).join(' · '), 10.5, 400, COL.soft, MARGIN + innerPad, CW - innerPad*2);
-      }
-      if(row.partnerNotes){
-        pushText('Partner notes: ' + row.partnerNotes, 10.5, 400, COL.soft, MARGIN + innerPad, CW - innerPad*2);
-      }
-      pushText(`Contactable: ${row.contact}    Partner anatomy: ${row.anatomy}${row.genderIdentity ? '    Gender identity: ' + row.genderIdentity : ''}`, 10.5, 400, COL.soft, MARGIN + innerPad, CW - innerPad*2);
-      y += 4;
-      row.acts.forEach(a => { pushText(a, 11, 400, COL.ink, MARGIN + innerPad, CW - innerPad*2); });
-      if(row.notes){
-        y += 2;
-        pushText('Notes: ' + row.notes, 10.5, 400, COL.soft, MARGIN + innerPad, CW - innerPad*2);
-      }
-      y += innerPad - 4;
-      const cardH = y - cardStartY;
-      const insertIdx = ops.findIndex(o => o.y >= cardStartY);
-      ops.splice(insertIdx, 0, { type:'rect', x: MARGIN, y: cardStartY, w: CW, h: cardH, fill: COL.card, stroke: COL.line, radius: 10 });
-      y = cardStartY + cardH + 14;
-    });
-
-    y += 20;
-    pushText('This export was generated completely on your device - never uploaded, synced, or shared automatically.', 9.5, 400, COL.soft);
-    y += MARGIN;
-
-    // ---- Draw pass ----
     await ensureLogoIconLoaded();
-    const DPR = Math.max(2, window.devicePixelRatio || 1);
-    const H = Math.ceil(y);
-    const canvas = document.createElement('canvas');
-    canvas.width = W * DPR;
-    canvas.height = H * DPR;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(DPR, DPR);
-    ctx.fillStyle = COL.bg;
-    ctx.fillRect(0, 0, W, H);
 
     function roundRect(ctx, x, yy, w, h, r){
       ctx.beginPath();
@@ -3482,35 +3388,148 @@
       ctx.closePath();
     }
 
-    ops.forEach(op => {
-      if(op.type === 'rect'){
-        roundRect(ctx, op.x, op.y, op.w, op.h, op.radius);
-        ctx.fillStyle = op.fill;
-        ctx.fill();
-        if(op.stroke){ ctx.strokeStyle = op.stroke; ctx.lineWidth = 1; ctx.stroke(); }
-      }else if(op.type === 'hr'){
-        ctx.strokeStyle = op.color; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(op.x, op.y); ctx.lineTo(op.x+op.w, op.y); ctx.stroke();
-      }else if(op.type === 'text'){
-        ctx.font = op.font;
-        ctx.fillStyle = op.color;
-        ctx.textBaseline = 'top';
-        ctx.fillText(op.text, op.x, op.y);
-      }else if(op.type === 'image'){
-        if(logoIcon.complete && logoIcon.naturalWidth){
-          ctx.drawImage(logoIcon, op.x, op.y, op.w, op.h);
+    function buildPage(rows, pageNum){
+      let y = 0;
+      const ops = [];
+      function measureLines(text, size, weight, maxWidth){
+        mctx.font = font(size, weight);
+        return wrapCanvasText(mctx, text, maxWidth || CW);
+      }
+      function pushText(text, size, weight, color, x, maxWidth){
+        const lines = measureLines(text, size, weight, maxWidth);
+        const lh = Math.round(size * 1.45);
+        lines.forEach(line => {
+          ops.push({ type:'text', text: line, x: x!==undefined?x:MARGIN, y, size, weight, color, font: font(size, weight) });
+          y += lh;
+        });
+        return lines.length * lh;
+      }
+
+      y = MARGIN;
+      {
+        const headerTop = y;
+        const iconSize = 44;
+        const textX = MARGIN + iconSize + 14;
+        const textMaxWidth = CW - iconSize - 14 - (totalPages > 1 ? 90 : 0);
+        ops.push({ type:'image', x: MARGIN, y: headerTop, w: iconSize, h: iconSize });
+        y = headerTop + 3;
+        pushText(data.title, 20, 800, COL.ink, textX, textMaxWidth);
+        pushText('Generated ' + data.generated + '  ·  zest.gay', 11, 400, COL.soft, textX, textMaxWidth);
+        if(totalPages > 1){
+          ops.push({ type:'text', text: `Page ${pageNum} of ${totalPages}`, x: W - MARGIN - 80, y: headerTop + 3, size: 11, weight: 700, color: COL.accent, font: font(11, 700) });
+        }
+        y = Math.max(y, headerTop + iconSize) + 14;
+      }
+
+      if(pageNum === 1){
+        // Partner ID explainer note
+        {
+          const startY = y;
+          const innerPad = 12;
+          y = y + innerPad;
+          pushText(data.idNote, 10, 400, COL.accent, MARGIN + innerPad, CW - innerPad*2);
+          y += innerPad - 9;
+          const noteH = y - startY;
+          ops.splice(ops.findIndex(o => o.y >= startY), 0, { type:'rect', x: MARGIN, y: startY, w: CW, h: noteH, fill: COL.accentBg, radius: 8 });
+          y = startY + noteH + 24;
+        }
+
+        // Profile summary card
+        {
+          const startY = y;
+          const innerPad = 16;
+          y = y + innerPad;
+          pushText('PROFILE SUMMARY', 10.5, 700, COL.accent, MARGIN + innerPad, CW - innerPad*2);
+          y += 2;
+          data.profile.forEach(([k,v]) => { pushText(`${k}:  ${v}`, 11.5, 400, COL.ink, MARGIN + innerPad, CW - innerPad*2); });
+          y += innerPad - 6;
+          const cardH = y - startY;
+          ops.splice(ops.findIndex(o => o.y >= startY), 0, { type:'rect', x: MARGIN, y: startY, w: CW, h: cardH, fill: COL.accentBg, radius: 10 });
+          y = startY + cardH + 20;
         }
       }
-    });
 
-    canvas.toBlob(blob => {
+      // Entries for this page
+      rows.forEach(row => {
+        const cardStartY = y;
+        const innerPad = 16;
+        y += innerPad;
+        const headerBits = [row.uuid, row.name, row.date, 'Age ' + row.age].filter(Boolean);
+        pushText(headerBits.join('   •   '), 13, 700, COL.accent, MARGIN + innerPad, CW - innerPad*2);
+        if(row.platform || row.handle){
+          pushText([row.platform, row.handle].filter(Boolean).join(' · '), 10.5, 400, COL.soft, MARGIN + innerPad, CW - innerPad*2);
+        }
+        if(row.partnerNotes){
+          pushText('Partner notes: ' + row.partnerNotes, 10.5, 400, COL.soft, MARGIN + innerPad, CW - innerPad*2);
+        }
+        pushText(`Contactable: ${row.contact}    Partner anatomy: ${row.anatomy}${row.genderIdentity ? '    Gender identity: ' + row.genderIdentity : ''}`, 10.5, 400, COL.soft, MARGIN + innerPad, CW - innerPad*2);
+        y += 4;
+        row.acts.forEach(a => { pushText(a, 11, 400, COL.ink, MARGIN + innerPad, CW - innerPad*2); });
+        if(row.notes){
+          y += 2;
+          pushText('Notes: ' + row.notes, 10.5, 400, COL.soft, MARGIN + innerPad, CW - innerPad*2);
+        }
+        y += innerPad - 4;
+        const cardH = y - cardStartY;
+        const insertIdx = ops.findIndex(o => o.y >= cardStartY);
+        ops.splice(insertIdx, 0, { type:'rect', x: MARGIN, y: cardStartY, w: CW, h: cardH, fill: COL.card, stroke: COL.line, radius: 10 });
+        y = cardStartY + cardH + 14;
+      });
+
+      y += MARGIN - 14;
+
+      return { ops, height: Math.ceil(y) };
+    }
+
+    function drawPage(ops, H){
+      const DPR = Math.max(2, window.devicePixelRatio || 1);
+      const canvas = document.createElement('canvas');
+      canvas.width = W * DPR;
+      canvas.height = H * DPR;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(DPR, DPR);
+      ctx.fillStyle = COL.bg;
+      ctx.fillRect(0, 0, W, H);
+
+      ops.forEach(op => {
+        if(op.type === 'rect'){
+          roundRect(ctx, op.x, op.y, op.w, op.h, op.radius);
+          ctx.fillStyle = op.fill;
+          ctx.fill();
+          if(op.stroke){ ctx.strokeStyle = op.stroke; ctx.lineWidth = 1; ctx.stroke(); }
+        }else if(op.type === 'hr'){
+          ctx.strokeStyle = op.color; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(op.x, op.y); ctx.lineTo(op.x+op.w, op.y); ctx.stroke();
+        }else if(op.type === 'text'){
+          ctx.font = op.font;
+          ctx.fillStyle = op.color;
+          ctx.textBaseline = 'top';
+          ctx.fillText(op.text, op.x, op.y);
+        }else if(op.type === 'image'){
+          if(logoIcon.complete && logoIcon.naturalWidth){
+            ctx.drawImage(logoIcon, op.x, op.y, op.w, op.h);
+          }
+        }
+      });
+
+      return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    }
+
+    const dotIdx = filename.lastIndexOf('.');
+    const base = dotIdx > -1 ? filename.slice(0, dotIdx) : filename;
+    const ext = dotIdx > -1 ? filename.slice(dotIdx) : '.png';
+
+    for(let i = 0; i < rowChunks.length; i++){
+      const { ops, height } = buildPage(rowChunks[i], i + 1);
+      const blob = await drawPage(ops, height);
+      const pageFilename = totalPages > 1 ? `${base}-${i+1}of${totalPages}${ext}` : filename;
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = filename;
+      a.href = url; a.download = pageFilename;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      if(!suppressToast) showToast('Image exported');
-    }, 'image/png');
+    }
+    if(!suppressToast) showToast(totalPages > 1 ? `${totalPages} images exported` : 'Image exported');
   }
 
   // ---------- PDF export (jsPDF loaded on demand; falls back to image if unavailable) ----------
@@ -3567,7 +3586,7 @@
       try{ doc.addImage(LOGO_ICON_SRC, 'PNG', margin, headerTop, iconSize, iconSize); }catch(e){ /* fall back to text-only header */ }
       y = headerTop + 2;
       text(data.title, 15, 'bold', '#1a1a1a', textX, textMaxWidth, 'top');
-      text('Generated ' + data.generated, 10, 'normal', '#666666', textX, textMaxWidth, 'top');
+      text('Generated ' + data.generated + '  ·  zest.gay', 10, 'normal', '#666666', textX, textMaxWidth, 'top');
       y = Math.max(y, headerTop + iconSize) + 8;
     }
     {
@@ -3634,9 +3653,6 @@
       if(row.notes) text('Notes: ' + row.notes, 10, 'italic', '#555555');
       y += 8;
     });
-
-    y += 8;
-    text('This export was generated completely on your device - never uploaded, synced, or shared automatically.', 9, 'italic', '#777777');
 
     const blob = doc.output('blob');
     const url = URL.createObjectURL(blob);
