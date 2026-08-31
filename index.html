@@ -462,6 +462,18 @@
     color: var(--ink-soft);
     margin-bottom: 5px;
   }
+  .prevention-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+  }
+  .prevention-label{
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--ink);
+    margin:0;
+  }
   .form-field input[type=text], .form-field input[type=number], .form-field textarea{
     width:100%;
     padding: 9px 11px;
@@ -1201,15 +1213,15 @@
 
     <div class="anatomy-box">
       <div class="anatomy-label">Prevention <span class="optional-tag">Optional</span></div>
-      <div class="form-field" style="margin-bottom:12px;">
-        <label style="text-transform:none;">On PrEP</label>
+      <div class="prevention-row" style="margin-bottom:12px;">
+        <label class="prevention-label">On PrEP</label>
         <div class="yesno-toggle" id="prepToggle">
           <button type="button" class="yesno-pill" data-value="yes">Yes</button>
           <button type="button" class="yesno-pill" data-value="no">No</button>
         </div>
       </div>
-      <div class="form-field">
-        <label style="text-transform:none;">On PEP</label>
+      <div class="prevention-row">
+        <label class="prevention-label">On PEP</label>
         <div class="yesno-toggle" id="pepToggle">
           <button type="button" class="yesno-pill" data-value="yes">Yes</button>
           <button type="button" class="yesno-pill" data-value="no">No</button>
